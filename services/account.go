@@ -43,10 +43,10 @@ func (s *accountAPIService) AccountBalance(
 	ctx context.Context,
 	request *types.AccountBalanceRequest,
 ) (*types.AccountBalanceResponse, *types.Error) {
-	terr := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier)
-	if terr != nil {
-		return nil, terr
-	}
+	// terr := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier)
+	// if terr != nil {
+	// 	return nil, terr
+	// }
 
 	// var height cmn.JSONUint64
 	// if request.BlockIdentifier == nil {
@@ -70,7 +70,7 @@ func (s *accountAPIService) AccountBalance(
 		if request.BlockIdentifier != nil {
 			resp.BlockIdentifier = &types.BlockIdentifier{Index: *request.BlockIdentifier.Index, Hash: *request.BlockIdentifier.Hash}
 		} else {
-			resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.CurrentHeight), Hash: status.LatestFinalizedBlockHash.String()}
+			resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
 		}
 		resp.Metadata = map[string]interface{}{"sequence_number": account.Sequence}
 
@@ -119,5 +119,63 @@ func (s *accountAPIService) AccountCoins(
 	ctx context.Context,
 	request *types.AccountCoinsRequest,
 ) (*types.AccountCoinsResponse, *types.Error) {
-	return nil, nil
+	status, err := GetStatus(s.client)
+
+	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
+		Address: request.AccountIdentifier.Address,
+		// Height:  status.LatestFinalizedBlockHeight,
+	})
+
+	parse := func(jsonBytes []byte) (interface{}, error) {
+		account := GetAccountResult{}.Account
+		json.Unmarshal(jsonBytes, &account)
+
+		resp := types.AccountCoinsResponse{}
+		resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
+		resp.Metadata = map[string]interface{}{"sequence_number": account.Sequence}
+
+		var needTheta, needTFuel bool
+		if request.Currencies != nil {
+			for _, currency := range request.Currencies {
+				if strings.EqualFold(currency.Symbol, cmn.Theta) {
+					needTheta = true
+				} else if strings.EqualFold(currency.Symbol, cmn.TFuel) {
+					needTFuel = true
+				}
+			}
+		} else {
+			needTheta = true
+			needTFuel = true
+		}
+
+		if needTheta {
+			var thetaCoin types.Coin
+			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "theta"} //TODO ?
+			var thetaBalance types.Amount
+			thetaBalance.Value = account.Balance.ThetaWei.String()
+			thetaBalance.Currency = &types.Currency{Symbol: cmn.Theta, Decimals: cmn.CoinDecimals}
+			thetaCoin.Amount = &thetaBalance
+			resp.Coins = append(resp.Coins, &thetaCoin)
+		}
+
+		if needTFuel {
+			var tfuelCoin types.Coin
+			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "tfuel"} //TODO ?
+			var tfuelBalance types.Amount
+			tfuelBalance.Value = account.Balance.TFuelWei.String()
+			tfuelBalance.Currency = &types.Currency{Symbol: cmn.TFuel, Decimals: cmn.CoinDecimals}
+			tfuelCoin.Amount = &tfuelBalance
+			resp.Coins = append(resp.Coins, &tfuelCoin)
+		}
+
+		return resp, nil
+	}
+
+	res, err := cmn.HandleThetaRPCResponse(rpcRes, rpcErr, parse)
+	if err != nil {
+		return nil, cmn.ErrUnableToGetAccount
+	}
+
+	ret, _ := res.(types.AccountCoinsResponse)
+	return &ret, nil
 }
