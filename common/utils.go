@@ -1,13 +1,30 @@
 package common
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 
 	rpcc "github.com/ybbus/jsonrpc"
+
+	"github.com/coinbase/rosetta-sdk-go/types"
+	log "github.com/sirupsen/logrus"
 )
+
+var logger *log.Entry = log.WithFields(log.Fields{"prefix": "utils"})
+
+var chainId string
+
+func GetChainId() string {
+	return chainId
+}
+
+func SetChainId(chid string) {
+	chainId = chid
+}
 
 func GetThetaRPCEndpoint() string {
 	thetaRPCEndpoint := viper.GetString(CfgThetaRPCEndpoint)
@@ -30,4 +47,22 @@ func HandleThetaRPCResponse(rpcRes *rpcc.RPCResponse, rpcErr error, parse func(j
 
 	result, err = parse(jsonBytes)
 	return
+}
+
+func ValidateNetworkIdentifier(ctx context.Context, ni *types.NetworkIdentifier) *types.Error {
+	if ni != nil {
+		logger.Debugf("==============chain id: %v", GetChainId())
+		if !strings.EqualFold(ni.Blockchain, Theta) {
+			return ErrInvalidBlockchain
+		}
+		if ni.SubNetworkIdentifier != nil {
+			return ErrInvalidSubnetwork
+		}
+		if !strings.EqualFold(ni.Network, GetChainId()) {
+			return ErrInvalidNetwork
+		}
+	} else {
+		return ErrMissingNID
+	}
+	return nil
 }

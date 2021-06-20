@@ -14,21 +14,21 @@ import (
 
 	jrpc "github.com/ybbus/jsonrpc"
 
-	"github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
+	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
 )
 
 var logger *log.Entry = log.WithFields(log.Fields{"prefix": "rpc"})
 
 func StartServers() error {
-	client := jrpc.NewClient(common.GetThetaRPCEndpoint())
+	client := jrpc.NewClient(cmn.GetThetaRPCEndpoint())
 
 	router, err := NewThetaRouter(client)
 	if err != nil {
 		logger.Fatalf("ERROR: Failed to init router: %v\n", err)
 	}
 
-	httpAddr := viper.GetString(common.CfgRPCHttpAddress)
-	httpPort := viper.GetString(common.CfgRPCHttpPort)
+	httpAddr := viper.GetString(cmn.CfgRPCHttpAddress)
+	httpPort := viper.GetString(cmn.CfgRPCHttpPort)
 	httpEndpoint := fmt.Sprintf("%v:%v", httpAddr, httpPort)
 
 	logger.Infof("Started listening at: %v\n", httpEndpoint)
@@ -57,12 +57,15 @@ func StopServers() error {
 // NewThetaRouter returns a Mux http.Handler from a collection of
 // Rosetta service controllers.
 func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
+	status, err := GetStatus(client)
+	cmn.SetChainId(status.ChainID)
+
 	asserter, err := asserter.NewServer([]string{"theta.GetAccount"},
 		true,
 		[]*types.NetworkIdentifier{
 			&types.NetworkIdentifier{
 				Blockchain: "theta",
-				Network:    "privatenet",
+				Network:    status.ChainID,
 			},
 		},
 		[]string{},

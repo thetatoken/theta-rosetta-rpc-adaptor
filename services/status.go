@@ -6,7 +6,7 @@ import (
 
 	jrpc "github.com/ybbus/jsonrpc"
 
-	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
+	cmn "github.com/thetatoken/theta/common"
 )
 
 type GetStatusArgs struct{}
@@ -17,12 +17,12 @@ type GetStatusResult struct {
 	PeerID                     string         `json:"peer_id"`
 	LatestFinalizedBlockHash   cmn.Hash       `json:"latest_finalized_block_hash"`
 	LatestFinalizedBlockHeight cmn.JSONUint64 `json:"latest_finalized_block_height"`
-	// LatestFinalizedBlockTime   *cmn.JSONBig   `json:"latest_finalized_block_time"`
-	LatestFinalizedBlockEpoch cmn.JSONUint64 `json:"latest_finalized_block_epoch"`
-	CurrentEpoch              cmn.JSONUint64 `json:"current_epoch"`
-	CurrentHeight             cmn.JSONUint64 `json:"current_height"`
-	// CurrentTime                *cmn.JSONBig   `json:"current_time"`
-	Syncing bool `json:"syncing"`
+	LatestFinalizedBlockTime   *cmn.JSONBig   `json:"latest_finalized_block_time"`
+	LatestFinalizedBlockEpoch  cmn.JSONUint64 `json:"latest_finalized_block_epoch"`
+	CurrentEpoch               cmn.JSONUint64 `json:"current_epoch"`
+	CurrentHeight              cmn.JSONUint64 `json:"current_height"`
+	CurrentTime                *cmn.JSONBig   `json:"current_time"`
+	Syncing                    bool           `json:"syncing"`
 }
 
 func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
