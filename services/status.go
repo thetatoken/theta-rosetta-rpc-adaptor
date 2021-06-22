@@ -23,6 +23,7 @@ type GetStatusResult struct {
 	CurrentHeight              cmn.JSONUint64 `json:"current_height"`
 	CurrentTime                *cmn.JSONBig   `json:"current_time"`
 	Syncing                    bool           `json:"syncing"`
+	GenesisBlockHash           cmn.Hash       `json:"genesis_block_hash"`
 }
 
 func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
@@ -38,6 +39,4 @@ func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
 	json.Unmarshal(jsonBytes, &trpcResult)
 
 	return &trpcResult, nil
-
-	// re.CurrentBlock = hexutil.Uint64(trpcResult.CurrentHeight)
 }

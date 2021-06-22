@@ -74,11 +74,11 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	// networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
+	networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
 	// blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)
 	// constructionAPIController := server.NewConstructionAPIController(NewConstructionAPIService(client), asserter)
 	// r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, constructionAPIController)
-	r := server.NewRouter(accountAPIController)
+	r := server.NewRouter(networkAPIController, accountAPIController)
 	return server.CorsMiddleware(server.LoggerMiddleware(r)), nil
 }
