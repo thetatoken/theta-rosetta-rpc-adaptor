@@ -7,10 +7,12 @@ import (
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/spf13/viper"
 
 	jrpc "github.com/ybbus/jsonrpc"
 
 	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
+	"github.com/thetatoken/theta/version"
 )
 
 type networkAPIService struct {
@@ -95,6 +97,27 @@ func (s *networkAPIService) NetworkOptions(
 	// 	if terr != nil {
 	// 		return nil, terr
 	// 	}
+
+	return &types.NetworkOptionsResponse{
+		Version: &types.Version{
+			RosettaVersion: viper.GetString(cmn.CfgRosettaVersion),
+			NodeVersion:    version.Version,
+		},
+		Allow: &types.Allow{
+			OperationStatuses: []*types.OperationStatus{
+				{
+					Status:     cmn.StatusSuccess, //TODO ?
+					Successful: true,
+				},
+				{
+					Status:     cmn.StatusFail, //TODO ?
+					Successful: false,
+				},
+			},
+			OperationTypes: []string{},    //TODO
+			Errors:         cmn.ErrorList, //TODO
+		},
+	}, nil
 
 	return nil, nil
 }

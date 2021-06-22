@@ -31,6 +31,8 @@ const (
 	// CfgLogPrintSelfID determines whether to print node's ID in log (Useful in simulation when
 	// there are more than one node running).
 	CfgLogPrintSelfID = "log.printSelfID"
+
+	CfgRosettaVersion = "rosettaVersion"
 )
 
 func init() {
@@ -46,4 +48,6 @@ func init() {
 
 	viper.SetDefault(CfgLogLevels, "*:debug")
 	viper.SetDefault(CfgLogPrintSelfID, false)
+
+	viper.SetDefault(CfgRosettaVersion, "1.1.1")
 }
