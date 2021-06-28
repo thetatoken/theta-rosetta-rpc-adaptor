@@ -50,7 +50,7 @@ func (s *networkAPIService) NetworkStatus(
 	// 	return nil, terr
 	// }
 
-	status, err := GetStatus(s.client)
+	status, err := cmn.GetStatus(s.client)
 	if err != nil {
 		return nil, cmn.ErrUnableToGetNodeStatus
 	}
@@ -114,8 +114,12 @@ func (s *networkAPIService) NetworkOptions(
 					Successful: false,
 				},
 			},
-			OperationTypes: []string{},    //TODO
-			Errors:         cmn.ErrorList, //TODO
+			OperationTypes:          cmn.TxTypes(), //TODO: just TxTypes?
+			Errors:                  cmn.ErrorList, //TODO
+			HistoricalBalanceLookup: true,
+			MempoolCoins:            true, // Any Rosetta implementation that can update an AccountIdentifier's unspent coins based on the
+			// contents of the mempool should populate this field as true. If false, requests to
+			// `/account/coins` that set `include_mempool` as true will be automatically rejected
 		},
 	}, nil
 

@@ -51,9 +51,9 @@ var (
 		Retriable: true,
 	}
 
-	ErrMustQueryByIndex = &types.Error{
+	ErrMissingBlockHashOrHeight = &types.Error{
 		Code:      9,
-		Message:   "blocks must be queried by index and not hash",
+		Message:   "missing block hash or height for querying block",
 		Retriable: false,
 	}
 
@@ -198,7 +198,7 @@ var (
 		ErrUnableToGetLatestBlk,
 		ErrUnableToGetGenesisBlk,
 		ErrUnableToGetAccount,
-		ErrMustQueryByIndex,
+		ErrMissingBlockHashOrHeight,
 		ErrInvalidAccountAddress,
 		ErrMustSpecifySubAccount,
 		ErrUnableToGetBlk,

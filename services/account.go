@@ -55,7 +55,7 @@ func (s *accountAPIService) AccountBalance(
 	// 	height = cmn.JSONUint64(*request.BlockIdentifier.Index)
 	// }
 
-	status, err := GetStatus(s.client)
+	status, err := cmn.GetStatus(s.client)
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
@@ -91,14 +91,14 @@ func (s *accountAPIService) AccountBalance(
 		if needTheta {
 			var thetaBalance types.Amount
 			thetaBalance.Value = account.Balance.ThetaWei.String()
-			thetaBalance.Currency = &types.Currency{Symbol: cmn.Theta, Decimals: cmn.CoinDecimals}
+			thetaBalance.Currency = cmn.GetThetaCurrency()
 			resp.Balances = append(resp.Balances, &thetaBalance)
 		}
 
 		if needTFuel {
 			var tfuelBalance types.Amount
 			tfuelBalance.Value = account.Balance.TFuelWei.String()
-			tfuelBalance.Currency = &types.Currency{Symbol: cmn.TFuel, Decimals: cmn.CoinDecimals}
+			tfuelBalance.Currency = cmn.GetTFuelCurrency()
 			resp.Balances = append(resp.Balances, &tfuelBalance)
 		}
 
@@ -119,7 +119,7 @@ func (s *accountAPIService) AccountCoins(
 	ctx context.Context,
 	request *types.AccountCoinsRequest,
 ) (*types.AccountCoinsResponse, *types.Error) {
-	status, err := GetStatus(s.client)
+	status, err := cmn.GetStatus(s.client)
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
@@ -153,7 +153,7 @@ func (s *accountAPIService) AccountCoins(
 			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "theta"} //TODO ?
 			var thetaBalance types.Amount
 			thetaBalance.Value = account.Balance.ThetaWei.String()
-			thetaBalance.Currency = &types.Currency{Symbol: cmn.Theta, Decimals: cmn.CoinDecimals}
+			thetaBalance.Currency = cmn.GetThetaCurrency()
 			thetaCoin.Amount = &thetaBalance
 			resp.Coins = append(resp.Coins, &thetaCoin)
 		}
@@ -163,7 +163,7 @@ func (s *accountAPIService) AccountCoins(
 			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "tfuel"} //TODO ?
 			var tfuelBalance types.Amount
 			tfuelBalance.Value = account.Balance.TFuelWei.String()
-			tfuelBalance.Currency = &types.Currency{Symbol: cmn.TFuel, Decimals: cmn.CoinDecimals}
+			tfuelBalance.Currency = cmn.GetTFuelCurrency()
 			tfuelCoin.Amount = &tfuelBalance
 			resp.Coins = append(resp.Coins, &tfuelCoin)
 		}
