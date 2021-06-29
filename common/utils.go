@@ -110,15 +110,14 @@ func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
 
 // ------------------------------ Tx -----------------------------------
 
-func ParseTx(tx Tx, txMap map[string]json.RawMessage, status *string) types.Transaction { //[]*types.Operation {
-	switch tx.Type {
-	case Coinbase: //*ttypes.CoinbaseTx:
-		// coinbaseTx := tx.Tx.(*ttypes.CoinbaseTx)
+func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *string) types.Transaction { //[]*types.Operation {
+	switch txType {
+	case Coinbase:
 		coinbaseTx := ttypes.CoinbaseTx{}
-		json.Unmarshal(txMap["raw"], &coinbaseTx)
+		json.Unmarshal(rawTx, &coinbaseTx)
 
 		transaction := types.Transaction{
-			TransactionIdentifier: &types.TransactionIdentifier{Hash: tx.Hash.Hex()},
+			TransactionIdentifier: &types.TransactionIdentifier{Hash: txHash.Hex()},
 			Metadata:              map[string]interface{}{"block_height": coinbaseTx.BlockHeight},
 		}
 
@@ -135,6 +134,7 @@ func ParseTx(tx Tx, txMap map[string]json.RawMessage, status *string) types.Tran
 
 		for i, output := range coinbaseTx.Outputs {
 			outputOp := &types.Operation{
+
 				OperationIdentifier: &types.OperationIdentifier{Index: int64(i) + 1},
 				RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
 				Type:                CoinbaseOutput.String(),

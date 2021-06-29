@@ -33,16 +33,17 @@ func GetTFuelCurrency() *types.Currency {
 	}
 }
 
+// ------------------------------ Tx Type -----------------------------------
+
+type TxType byte
+type TxStatus string
+
 type Tx struct {
 	ttypes.Tx `json:"raw"`
 	Type      TxType                     `json:"type"`
 	Hash      common.Hash                `json:"hash"`
 	Receipt   *blockchain.TxReceiptEntry `json:"receipt"`
 }
-
-// ------------------------------ Tx Type -----------------------------------
-
-type TxType byte
 
 const (
 	Coinbase TxType = iota
@@ -145,13 +146,13 @@ const (
 
 func (s BlockStatus) String() string {
 	return [...]string{
-		"Pending",
-		"Valid",
-		"Invalid",
-		"Committed",
-		"Directly Finalized",
-		"Indirectly Finalized",
-		"Trusted",
-		"Disposed",
+		"pending",
+		"valid",
+		"invalid",
+		"committed",
+		"finalized",
+		"indirectly finalized",
+		"trusted",
+		"disposed",
 	}[s]
 }
