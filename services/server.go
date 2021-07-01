@@ -58,6 +58,9 @@ func StopServers() error {
 // Rosetta service controllers.
 func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	status, err := cmn.GetStatus(client)
+	if err != nil {
+		return nil, err
+	}
 	cmn.SetChainId(status.ChainID)
 
 	asserter, err := asserter.NewServer(
@@ -78,8 +81,9 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
 	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)
+	memPoolAPIController := server.NewMempoolAPIController(NewMemPoolAPIService(client), asserter)
 	// constructionAPIController := server.NewConstructionAPIController(NewConstructionAPIService(client), asserter)
 	// r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, constructionAPIController)
-	r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController)
+	r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, memPoolAPIController)
 	return server.CorsMiddleware(server.LoggerMiddleware(r)), nil
 }

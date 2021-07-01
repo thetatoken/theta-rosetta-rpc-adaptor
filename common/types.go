@@ -8,10 +8,12 @@ import (
 )
 
 const (
-	// Theta Symbol
 	Theta = "THETA"
+
+	// Theta Symbol
+	ThetaWei = "thetawei"
 	// TFuel Symbol
-	TFuel = "TFUEL"
+	TFuelWei = "tfuelwei"
 	// Decimals
 	CoinDecimals = 18
 
@@ -21,14 +23,14 @@ const (
 
 func GetThetaCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   Theta,
+		Symbol:   ThetaWei,
 		Decimals: CoinDecimals,
 	}
 }
 
 func GetTFuelCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   TFuel,
+		Symbol:   TFuelWei,
 		Decimals: CoinDecimals,
 	}
 }
@@ -56,8 +58,8 @@ const (
 	SmartContract
 	DepositStake
 	WithdrawStake
-	DepositStakeTxV2
-	StakeRewardDistributionTx
+	DepositStakeV2
+	StakeRewardDistribution
 )
 
 func (t TxType) String() string {
@@ -71,8 +73,8 @@ func (t TxType) String() string {
 		"SmartContract",
 		"DepositStake",
 		"WithdrawStake",
-		"DepositStakeTxV2",
-		"StakeRewardDistributionTx",
+		"DepositStakeV2",
+		"StakeRewardDistribution",
 	}[t]
 }
 
@@ -87,8 +89,8 @@ func TxTypes() []string {
 		"SmartContract",
 		"DepositStake",
 		"WithdrawStake",
-		"DepositStakeTxV2",
-		"StakeRewardDistributionTx",
+		"DepositStakeV2",
+		"StakeRewardDistribution",
 	}
 }
 
@@ -97,35 +99,48 @@ func TxTypes() []string {
 type TxOpType byte
 
 const (
-	CoinbaseProposer TxOpType = iota
-	CoinbaseOutput
-	// Slash
-	// Send
-	// ReserveFund
-	// ReleaseFund
-	// ServicePayment
-	// SplitRule
-	// SmartContract
-	// DepositStake
-	// WithdrawStake
-	// DepositStakeTxV2
-	// StakeRewardDistributionTx
+	CoinbaseTxProposer TxOpType = iota
+	CoinbaseTxOutput
+	SlashTxProposer
+	SendTxFee
+	SendTxInput
+	SendTxOutput
+	ReserveFundTxSource
+	ReleaseFundTxSource
+	ServicePaymentTxSource
+	ServicePaymentTxTarget
+	SplitRuleTxInitiator
+	SmartContractTxFrom
+	SmartContractTxTo
+	DepositStakeTxSource
+	DepositStakeTxHolder
+	WithdrawStakeTxSource
+	WithdrawStakeTxHolder
+	StakeRewardDistributionTxHolder
+	StakeRewardDistributionTxBeneficiary
 )
 
 func (t TxOpType) String() string {
 	return [...]string{
-		"Coinbase Proposer",
-		"Coinbase Output",
-		"Slash",
-		"Send",
-		"ReserveFund",
-		"ServicePayment",
-		"SplitRule",
-		"SmartContract",
-		"DepositStake",
-		"WithdrawStake",
-		"DepositStakeTxV2",
-		"StakeRewardDistributionTx",
+		"CoinbaseTxProposer",
+		"CoinbaseTxOutput",
+		"SlashTxProposer",
+		"SendTxFee",
+		"SendTxInput",
+		"SendTxOutput",
+		"ReserveFundTxSource",
+		"ReleaseFundTxSource",
+		"ServicePaymentTxSource",
+		"ServicePaymentTxTarget",
+		"SplitRuleTxInitiator",
+		"SmartContractTxFrom",
+		"SmartContractTxTo",
+		"DepositStakeTxSource",
+		"DepositStakeTxHolder",
+		"WithdrawStakeTxSource",
+		"WithdrawStakeTxHolder",
+		"StakeRewardDistributionTxHolder",
+		"StakeRewardDistributionTxBeneficiary",
 	}[t]
 }
 

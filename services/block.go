@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -172,8 +173,13 @@ func (s *blockAPIService) BlockTransaction(
 			var rawTx json.RawMessage
 			json.Unmarshal(objMap["transaction"], &rawTx)
 			status := string(txResult.Status)
-			tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status)
-			resp.Transaction = &tx
+			if "not_found" != status {
+				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status)
+				resp.Transaction = &tx
+			}
+		}
+		if resp.Transaction == nil {
+			return nil, fmt.Errorf("%v", cmn.ErrUnableToGetBlkTx)
 		}
 		return resp, nil
 	}
