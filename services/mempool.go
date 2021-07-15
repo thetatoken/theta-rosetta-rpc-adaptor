@@ -110,4 +110,4 @@ func (s *memPoolAPIService) MempoolTransaction(
 
 	ret, _ := res.(types.MempoolTransactionResponse)
 	return &ret, nil
-} //TODO: tx status
+}

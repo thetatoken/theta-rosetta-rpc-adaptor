@@ -77,9 +77,9 @@ func (s *accountAPIService) AccountBalance(
 		var needTheta, needTFuel bool
 		if request.Currencies != nil {
 			for _, currency := range request.Currencies {
-				if strings.EqualFold(currency.Symbol, cmn.ThetaWei) {
+				if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
 					needTheta = true
-				} else if strings.EqualFold(currency.Symbol, cmn.TFuelWei) {
+				} else if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
 					needTFuel = true
 				}
 			}
@@ -137,9 +137,9 @@ func (s *accountAPIService) AccountCoins(
 		var needTheta, needTFuel bool
 		if request.Currencies != nil {
 			for _, currency := range request.Currencies {
-				if strings.EqualFold(currency.Symbol, cmn.ThetaWei) {
+				if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
 					needTheta = true
-				} else if strings.EqualFold(currency.Symbol, cmn.TFuelWei) {
+				} else if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
 					needTFuel = true
 				}
 			}

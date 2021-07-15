@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/thetatoken/theta/blockchain"
 	"github.com/thetatoken/theta/common"
@@ -10,10 +12,6 @@ import (
 const (
 	Theta = "THETA"
 
-	// Theta Symbol
-	ThetaWei = "thetawei"
-	// TFuel Symbol
-	TFuelWei = "tfuelwei"
 	// Decimals
 	CoinDecimals = 18
 
@@ -23,14 +21,14 @@ const (
 
 func GetThetaCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   ThetaWei,
+		Symbol:   ttypes.DenomThetaWei,
 		Decimals: CoinDecimals,
 	}
 }
 
 func GetTFuelCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   TFuelWei,
+		Symbol:   ttypes.DenomTFuelWei,
 		Decimals: CoinDecimals,
 	}
 }
@@ -48,49 +46,49 @@ type Tx struct {
 }
 
 const (
-	Coinbase TxType = iota
-	Slash
-	Send
-	ReserveFund
-	ReleaseFund
-	ServicePayment
-	SplitRule
-	SmartContract
-	DepositStake
-	WithdrawStake
-	DepositStakeV2
-	StakeRewardDistribution
+	CoinbaseTx TxType = iota
+	SlashTx
+	SendTx
+	ReserveFundTx
+	ReleaseFundTx
+	ServicePaymentTx
+	SplitRuleTx
+	SmartContractTx
+	DepositStakeTx
+	WithdrawStakeTx
+	DepositStakeV2Tx
+	StakeRewardDistributionTx
 )
 
 func (t TxType) String() string {
 	return [...]string{
-		"Coinbase",
-		"Slash",
-		"Send",
-		"ReserveFund",
-		"ServicePayment",
-		"SplitRule",
-		"SmartContract",
-		"DepositStake",
-		"WithdrawStake",
-		"DepositStakeV2",
-		"StakeRewardDistribution",
+		"CoinbaseTx",
+		"SlashTx",
+		"SendTx",
+		"ReserveFundTx",
+		"ServicePaymentTx",
+		"SplitRuleTx",
+		"SmartContractTx",
+		"DepositStakeTx",
+		"WithdrawStakeTx",
+		"DepositStakeV2Tx",
+		"StakeRewardDistributionTx",
 	}[t]
 }
 
 func TxTypes() []string {
 	return []string{
-		"Coinbase",
-		"Slash",
-		"Send",
-		"ReserveFund",
-		"ServicePayment",
-		"SplitRule",
-		"SmartContract",
-		"DepositStake",
-		"WithdrawStake",
-		"DepositStakeV2",
-		"StakeRewardDistribution",
+		"CoinbaseTx",
+		"SlashTx",
+		"SendTx",
+		"ReserveFundTx",
+		"ServicePaymentTx",
+		"SplitRuleTx",
+		"SmartContractTx",
+		"DepositStakeTx",
+		"WithdrawStakeTx",
+		"DepositStakeV2Tx",
+		"StakeRewardDistributionTx",
 	}
 }
 
@@ -142,6 +140,49 @@ func (t TxOpType) String() string {
 		"StakeRewardDistributionTxHolder",
 		"StakeRewardDistributionTxBeneficiary",
 	}[t]
+}
+
+func TxOpTypes() []string {
+	return []string{
+		"CoinbaseTxProposer",
+		"CoinbaseTxOutput",
+		"SlashTxProposer",
+		"SendTxFee",
+		"SendTxInput",
+		"SendTxOutput",
+		"ReserveFundTxSource",
+		"ReleaseFundTxSource",
+		"ServicePaymentTxSource",
+		"ServicePaymentTxTarget",
+		"SplitRuleTxInitiator",
+		"SmartContractTxFrom",
+		"SmartContractTxTo",
+		"DepositStakeTxSource",
+		"DepositStakeTxHolder",
+		"WithdrawStakeTxSource",
+		"WithdrawStakeTxHolder",
+		"StakeRewardDistributionTxHolder",
+		"StakeRewardDistributionTxBeneficiary",
+	}
+}
+
+//TODO: merge these two?
+func IsSupportedConstructionType(typ string) bool {
+	for _, styp := range TxOpTypes() {
+		if typ == styp {
+			return true
+		}
+	}
+	return false
+}
+
+func GetTxOpType(typ string) (TxOpType, error) {
+	for i, styp := range TxOpTypes() {
+		if typ == styp {
+			return TxOpType(i), nil
+		}
+	}
+	return 0, fmt.Errorf("invalid tx op type")
 }
 
 // ------------------------------ Block Status -----------------------------------
