@@ -150,7 +150,7 @@ func (s *accountAPIService) AccountCoins(
 
 		if needTheta {
 			var thetaCoin types.Coin
-			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "theta"} //TODO ?
+			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomThetaWei}
 			var thetaBalance types.Amount
 			thetaBalance.Value = account.Balance.ThetaWei.String()
 			thetaBalance.Currency = cmn.GetThetaCurrency()
@@ -160,7 +160,7 @@ func (s *accountAPIService) AccountCoins(
 
 		if needTFuel {
 			var tfuelCoin types.Coin
-			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: "tfuel"} //TODO ?
+			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomTFuelWei}
 			var tfuelBalance types.Amount
 			tfuelBalance.Value = account.Balance.TFuelWei.String()
 			tfuelBalance.Currency = cmn.GetTFuelCurrency()

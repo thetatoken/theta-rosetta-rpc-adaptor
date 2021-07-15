@@ -277,7 +277,7 @@ func ParseReserveFundTx(reserveFundTx ttypes.ReserveFundTx, status *string, txTy
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                ReserveFundTxSource.String(),
 		Account:             &types.AccountIdentifier{Address: reserveFundTx.Source.Address.String()},
-		Amount:              &types.Amount{Value: reserveFundTx.Source.Coins.ThetaWei.String(), Currency: GetThetaCurrency()}, //TODO: theta only?
+		Amount:              &types.Amount{Value: reserveFundTx.Source.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": reserveFundTx.Source.Sequence, "signature": sigBytes},
 	}
 	if status != nil {
@@ -299,7 +299,7 @@ func ParseReleaseFundTx(releaseFundTx ttypes.ReleaseFundTx, status *string, txTy
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                ReleaseFundTxSource.String(),
 		Account:             &types.AccountIdentifier{Address: releaseFundTx.Source.Address.String()},
-		Amount:              &types.Amount{Value: releaseFundTx.Source.Coins.ThetaWei.String(), Currency: GetThetaCurrency()}, //TODO: theta only?
+		Amount:              &types.Amount{Value: releaseFundTx.Source.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": releaseFundTx.Source.Sequence, "signature": sigBytes},
 	}
 	if status != nil {
@@ -323,7 +323,7 @@ func ParseServicePaymentTx(servicePaymentTx ttypes.ServicePaymentTx, status *str
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                ServicePaymentTxSource.String(),
 		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Source.Address.String()},
-		Amount:              &types.Amount{Value: servicePaymentTx.Source.Coins.ThetaWei.String(), Currency: GetThetaCurrency()}, //TODO: theta only?
+		Amount:              &types.Amount{Value: servicePaymentTx.Source.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": servicePaymentTx.Source.Sequence, "signature": sigBytes},
 	}
 	targetOp := types.Operation{
@@ -331,7 +331,7 @@ func ParseServicePaymentTx(servicePaymentTx ttypes.ServicePaymentTx, status *str
 		RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
 		Type:                ServicePaymentTxTarget.String(),
 		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Target.Address.String()},
-		Amount:              &types.Amount{Value: servicePaymentTx.Target.Coins.ThetaWei.String(), Currency: GetThetaCurrency()}, //TODO: theta only?
+		Amount:              &types.Amount{Value: servicePaymentTx.Target.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		// Metadata:            map[string]interface{}{"sequence": servicePaymentTx.Target.Sequence, "signature": servicePaymentTx.Target.Signature},
 	}
 	if status != nil {
@@ -356,7 +356,7 @@ func ParseSplitRuleTx(splitRuleTx ttypes.SplitRuleTx, status *string, txType TxT
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                SplitRuleTxInitiator.String(),
 		Account:             &types.AccountIdentifier{Address: splitRuleTx.Initiator.Address.String()},
-		Amount:              &types.Amount{Value: splitRuleTx.Initiator.Coins.ThetaWei.String(), Currency: GetThetaCurrency()}, //TODO: theta only?
+		Amount:              &types.Amount{Value: splitRuleTx.Initiator.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": splitRuleTx.Initiator.Sequence, "signature": sigBytes},
 	}
 	if status != nil {
@@ -379,7 +379,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                SmartContractTxFrom.String(),
 		Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-		Amount:              &types.Amount{Value: smartContractTx.From.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()}, //TODO: tfuel only?
+		Amount:              &types.Amount{Value: smartContractTx.From.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
 	}
 	toOp := types.Operation{
@@ -387,7 +387,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
 		Type:                SmartContractTxTo.String(),
 		Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
-		Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()}, //TODO: tfuel only?
+		Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 	}
 	if status != nil {
 		fromOp.Status = status

@@ -114,16 +114,14 @@ func (s *networkAPIService) NetworkOptions(
 					Successful: false,
 				},
 			},
-			OperationTypes:          cmn.TxTypes(), //TODO: just TxTypes?
-			Errors:                  cmn.ErrorList, //TODO
+			OperationTypes:          cmn.TxOpTypes(),
+			Errors:                  cmn.ErrorList,
 			HistoricalBalanceLookup: true,
 			MempoolCoins:            true, // Any Rosetta implementation that can update an AccountIdentifier's unspent coins based on the
 			// contents of the mempool should populate this field as true. If false, requests to
 			// `/account/coins` that set `include_mempool` as true will be automatically rejected
 		},
 	}, nil
-
-	return nil, nil
 }
 
 type GetPeersArgs struct {

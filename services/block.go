@@ -172,10 +172,10 @@ func (s *blockAPIService) BlockTransaction(
 		if objMap["transaction"] != nil {
 			var rawTx json.RawMessage
 			json.Unmarshal(objMap["transaction"], &rawTx)
-			// ttx, err := ttypes.TxFromBytes(rawTx)		//TODO: no need for TxType, switch on ttx.(type) in cmn.ParseTx
-			// if err != nil {
-			// 	return nil, fmt.Errorf("invalid transaction format: " + err.Error())
-			// }
+			_, err := ttypes.TxFromBytes(rawTx)
+			if err != nil {
+				return nil, fmt.Errorf("invalid transaction format: " + err.Error())
+			}
 			status := string(txResult.Status)
 			if "not_found" != status {
 				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status)
