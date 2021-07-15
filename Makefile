@@ -1,3 +1,6 @@
+# Theta Implementation of the Rosetta RPC API standard developed by Coinbase.com
+# https://blog.coinbase.com/introducing-rosetta-build-once-integrate-your-blockchain-everywhere-9b97d284f5b9
+
 GOTOOLS =	github.com/mitchellh/gox \
 			github.com/Masterminds/glide \
 			github.com/rigelrozanski/shelldown/cmd/shelldown
