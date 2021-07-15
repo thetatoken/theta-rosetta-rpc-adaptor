@@ -124,7 +124,9 @@ func (s *constructionAPIService) ConstructionCombine(
 		tran.SetSignature(signer, sig)
 		in = tran.Holder
 	default:
-		//TODO
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += "unsupported tx type"
+		return nil, terr
 	}
 
 	// Check signatures
@@ -500,7 +502,9 @@ func (s *constructionAPIService) ConstructionParse(
 		sender = tran.Holder.Address.String()
 		meta, ops = cmn.ParseStakeRewardDistributionTx(tran, nil, cmn.StakeRewardDistributionTx)
 	default:
-		//TODO
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += "unsupported tx type"
+		return nil, terr
 	}
 
 	resp := &types.ConstructionParseResponse{
