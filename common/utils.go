@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	cmn "github.com/thetatoken/theta/common"
 	"github.com/thetatoken/theta/crypto"
+	"github.com/thetatoken/theta/crypto/bls"
 	ttypes "github.com/thetatoken/theta/ledger/types"
 	jrpc "github.com/ybbus/jsonrpc"
 )
@@ -138,7 +139,7 @@ func ParseCoinbaseTx(coinbaseTx ttypes.CoinbaseTx, status *string, txType TxType
 			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
 			Type:                CoinbaseTxOutput.String(),
 			Account:             &types.AccountIdentifier{Address: output.Address.String()},
-			Amount:              &types.Amount{Value: output.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
+			Amount:              &types.Amount{Value: output.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		}
 		if status != nil {
 			outputOp.Status = status
@@ -153,7 +154,7 @@ func ParseSlashTx(slashTx ttypes.SlashTx, status *string, txType TxType) (metada
 		"type":             txType,
 		"slashed_address":  slashTx.SlashedAddress,
 		"reserve_sequence": slashTx.ReserveSequence,
-		"slash_proof":      slashTx.SlashProof, //TODO: need to convert to hex string?
+		"slash_proof":      slashTx.SlashProof,
 	}
 
 	sigBytes, _ := slashTx.Proposer.Signature.MarshalJSON()
@@ -347,7 +348,7 @@ func ParseSplitRuleTx(splitRuleTx ttypes.SplitRuleTx, status *string, txType TxT
 		"type":        txType,
 		"fee":         splitRuleTx.Fee,
 		"resource_id": splitRuleTx.ResourceID,
-		"splits":      splitRuleTx.Splits, //TODO ?
+		"splits":      splitRuleTx.Splits,
 		"duration":    splitRuleTx.Duration,
 	}
 
@@ -397,11 +398,20 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 	return
 }
 
-func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
+func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
-		"type":    txType, //TODO: diff V2?
+		"type":    txType,
 		"fee":     depositStakeTx.Fee,
 		"purpose": depositStakeTx.Purpose,
+	}
+	if depositStakeTx.BlsPubkey != nil {
+		metadata["bls_pub_key"] = depositStakeTx.BlsPubkey
+	}
+	if depositStakeTx.BlsPop != nil {
+		metadata["bls_pop"] = depositStakeTx.BlsPop
+	}
+	if depositStakeTx.HolderSig != nil {
+		metadata["holder_sig"] = depositStakeTx.HolderSig
 	}
 
 	sigBytes, _ := depositStakeTx.Source.Signature.MarshalJSON()
@@ -649,7 +659,7 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 		json.Unmarshal(rawTx, &smartContractTx)
 		transaction.Metadata, transaction.Operations = ParseSmartContractTx(smartContractTx, status, txType)
 	case DepositStakeTx, DepositStakeV2Tx:
-		depositStakeTx := ttypes.DepositStakeTx{}
+		depositStakeTx := ttypes.DepositStakeTxV2{}
 		json.Unmarshal(rawTx, &depositStakeTx)
 		transaction.Metadata, transaction.Operations = ParseDepositStakeTx(depositStakeTx, status, txType)
 	case WithdrawStakeTx:
@@ -666,7 +676,12 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 }
 
 func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.Tx, err error) {
-	txType := meta["type"]
+	var ok bool
+	var typ interface{}
+	if typ, ok = meta["type"]; !ok {
+		return nil, fmt.Errorf("missing tx type")
+	}
+	txType := typ.(TxType)
 
 	switch txType {
 	case CoinbaseTx:
@@ -675,6 +690,18 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		sig := &crypto.Signature{}
 		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
+		outputs := []ttypes.TxOutput{}
+		for i := 1; i < len(ops); i++ {
+			tFuelWei := new(big.Int)
+			tFuelWei.SetString(ops[i].Amount.Value, 10)
+
+			output := ttypes.TxOutput{
+				Address: cmn.HexToAddress(ops[i].Account.Address),
+				Coins:   ttypes.Coins{TFuelWei: tFuelWei},
+			}
+			outputs = append(outputs, output)
+		}
+
 		tx = &ttypes.CoinbaseTx{
 			Proposer: ttypes.TxInput{
 				Address:   cmn.HexToAddress(ops[0].Account.Address),
@@ -682,10 +709,24 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 				Sequence:  ops[0].Metadata["sequence"].(uint64),
 				Signature: sig,
 			},
-			//TODO...
+			Outputs: outputs,
+			// BlockHeight: meta["block_height"].(uint64),
 		}
-	case SlashTx:
 
+	case SlashTx:
+		inputAmount := new(big.Int)
+		inputAmount.SetString(ops[0].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		tx = &ttypes.SlashTx{
+			Proposer: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{TFuelWei: inputAmount},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+		}
 	case SendTx:
 		var inputs []ttypes.TxInput
 		var outputs []ttypes.TxOutput
@@ -721,12 +762,84 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		}
 
 	case ReserveFundTx:
+		inputAmount := new(big.Int)
+		inputAmount.SetString(ops[0].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		tx = &ttypes.ReserveFundTx{
+			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Source: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{TFuelWei: inputAmount},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Collateral:  meta["collateral"].(ttypes.Coins),
+			ResourceIDs: meta["resource_ids"].([]string),
+			Duration:    meta["duration"].(uint64),
+		}
 
 	case ReleaseFundTx:
+		inputAmount := new(big.Int)
+		inputAmount.SetString(ops[0].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		tx = &ttypes.ReleaseFundTx{
+			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Source: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{TFuelWei: inputAmount},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			ReserveSequence: meta["reserve_sequence"].(uint64),
+		}
 
 	case ServicePaymentTx:
+		sourceAmount := new(big.Int)
+		sourceAmount.SetString(ops[0].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+		targetAmount := new(big.Int)
+		targetAmount.SetString(ops[1].Amount.Value, 10)
+
+		tx = &ttypes.ServicePaymentTx{
+			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Source: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{TFuelWei: sourceAmount},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Target: ttypes.TxInput{
+				Address: cmn.HexToAddress(ops[1].Account.Address),
+				Coins:   ttypes.Coins{TFuelWei: targetAmount},
+			},
+			PaymentSequence: meta["payment_sequence"].(uint64),
+			ReserveSequence: meta["reserve_sequence"].(uint64),
+			ResourceID:      meta["resource_id"].(string),
+		}
 
 	case SplitRuleTx:
+		sourceAmount := new(big.Int)
+		sourceAmount.SetString(ops[0].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		tx = &ttypes.SplitRuleTx{
+			Fee:        ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			ResourceID: meta["resource_id"].(string),
+			Initiator: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{TFuelWei: sourceAmount},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Splits:   meta["splits"].([]ttypes.Split),
+			Duration: meta["duration"].(uint64),
+		}
 
 	case SmartContractTx:
 		sig := &crypto.Signature{}
@@ -735,9 +848,6 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		fromTFuelWei.SetString(ops[0].Amount.Value, 10)
 		toTFuelWei := new(big.Int)
 		toTFuelWei.SetString(ops[1].Amount.Value, 10)
-
-		gasPrice := new(big.Int)
-		gasPrice.SetInt64(meta["gas_price"].(int64))
 
 		tx = &ttypes.SmartContractTx{
 			From: ttypes.TxInput{
@@ -751,16 +861,104 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 				Coins:   ttypes.Coins{ThetaWei: big.NewInt(0), TFuelWei: toTFuelWei},
 			},
 			GasLimit: meta["gas_limit"].(uint64),
-			GasPrice: gasPrice,
+			GasPrice: new(big.Int).Set(meta["gas_price"].(*big.Int)),
 			Data:     meta["data"].([]byte),
 		}
 
 	case DepositStakeTx, DepositStakeV2Tx:
+		sourceThetaWei := new(big.Int)
+		sourceThetaWei.SetString(ops[0].Amount.Value, 10)
+		sourceTFuelWei := new(big.Int)
+		sourceTFuelWei.SetString(ops[1].Amount.Value, 10)
+		holderThetaWei := new(big.Int)
+		holderThetaWei.SetString(ops[2].Amount.Value, 10)
+		holderTFuelWei := new(big.Int)
+		holderTFuelWei.SetString(ops[3].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		depositStakeTx := &ttypes.DepositStakeTxV2{
+			Fee:     ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Purpose: meta["purpose"].(uint8),
+			Source: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Holder: ttypes.TxOutput{
+				Address: cmn.HexToAddress(ops[1].Account.Address),
+				Coins:   ttypes.Coins{ThetaWei: holderThetaWei, TFuelWei: holderTFuelWei},
+			},
+		}
+
+		if blsPubkey, ok := meta["bls_pub_key"]; ok {
+			depositStakeTx.BlsPubkey = blsPubkey.(*bls.PublicKey)
+		}
+		if blsPop, ok := meta["bls_pop"]; ok {
+			depositStakeTx.BlsPop = blsPop.(*bls.Signature)
+		}
+		if holderSig, ok := meta["holder_sig"]; ok {
+			depositStakeTx.HolderSig = holderSig.(*crypto.Signature)
+		}
+		tx = depositStakeTx
 
 	case WithdrawStakeTx:
+		sourceThetaWei := new(big.Int)
+		sourceThetaWei.SetString(ops[0].Amount.Value, 10)
+		sourceTFuelWei := new(big.Int)
+		sourceTFuelWei.SetString(ops[1].Amount.Value, 10)
+		holderThetaWei := new(big.Int)
+		holderThetaWei.SetString(ops[2].Amount.Value, 10)
+		holderTFuelWei := new(big.Int)
+		holderTFuelWei.SetString(ops[3].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
+
+		tx = &ttypes.WithdrawStakeTx{
+			Fee:     ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Purpose: meta["purpose"].(uint8),
+			Source: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Holder: ttypes.TxOutput{
+				Address: cmn.HexToAddress(ops[1].Account.Address),
+				Coins:   ttypes.Coins{ThetaWei: holderThetaWei, TFuelWei: holderTFuelWei},
+			},
+		}
 
 	case StakeRewardDistributionTx:
+		holderThetaWei := new(big.Int)
+		holderThetaWei.SetString(ops[0].Amount.Value, 10)
+		holderTFuelWei := new(big.Int)
+		holderTFuelWei.SetString(ops[1].Amount.Value, 10)
+		beneficiaryThetaWei := new(big.Int)
+		beneficiaryThetaWei.SetString(ops[2].Amount.Value, 10)
+		beneficiaryTFuelWei := new(big.Int)
+		beneficiaryTFuelWei.SetString(ops[3].Amount.Value, 10)
+		sig := &crypto.Signature{}
+		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
+		tx = &ttypes.StakeRewardDistributionTx{
+			Fee:             ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			SplitBasisPoint: meta["split_basis_point"].(uint),
+			Holder: ttypes.TxInput{
+				Address:   cmn.HexToAddress(ops[0].Account.Address),
+				Coins:     ttypes.Coins{ThetaWei: holderThetaWei, TFuelWei: holderTFuelWei},
+				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Signature: sig,
+			},
+			Beneficiary: ttypes.TxOutput{
+				Address: cmn.HexToAddress(ops[1].Account.Address),
+				Coins:   ttypes.Coins{ThetaWei: beneficiaryThetaWei, TFuelWei: beneficiaryTFuelWei},
+			},
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported tx type")
 	}
-	return tx, nil
+	return
 }

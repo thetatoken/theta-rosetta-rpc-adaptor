@@ -254,28 +254,25 @@ func (s *constructionAPIService) ConstructionMetadata(
 
 	switch txType.(string) {
 	case cmn.CoinbaseTx.String():
-		if blockHeight, ok := request.Options["block_height"]; ok {
-			meta["block_height"] = blockHeight
-		} else {
-			status, _ := cmn.GetStatus(s.client)
-			meta["block_height"] = status.CurrentHeight + 1 //TODO: confirm
-		}
+		// if blockHeight, ok := request.Options["block_height"]; ok {
+		// 	meta["block_height"] = blockHeight
+		// }
 
 	case cmn.SlashTx.String():
-		if slashedAddr, ok := meta["slashed_address"]; ok {
-			meta["slashed_address"] = slashedAddr
-		}
-		if reserveSeq, ok := meta["reserve_sequence"]; ok {
-			meta["reserve_sequence"] = reserveSeq
-		}
-		if slashProof, ok := meta["slash_proof"]; ok {
-			meta["slash_proof"] = slashProof
-		}
+		// if slashedAddr, ok := meta["slashed_address"]; ok {
+		// 	meta["slashed_address"] = slashedAddr
+		// }
+		// if reserveSeq, ok := meta["reserve_sequence"]; ok {
+		// 	meta["reserve_sequence"] = reserveSeq
+		// }
+		// if slashProof, ok := meta["slash_proof"]; ok {
+		// 	meta["slash_proof"] = slashProof
+		// }
 
 	case cmn.SendTx.String():
 		if fee, ok := meta["fee"]; ok {
 			meta["fee"] = fee
-		} else {
+		} else { //TODO
 			// if request.feeMultiplier != nil {
 			// 	terr := cmn.ErrInvalidInputParam
 			// 	terr.Message += "missing fee multiplier for send tx"
@@ -313,7 +310,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 		if paymentSequence, ok := meta["payment_sequence"]; ok {
 			meta["payment_sequence"] = paymentSequence
 		}
-		if reserveSequence, ok := meta["reserve_sequence"]; ok { //TODO: reserve_seq?
+		if reserveSequence, ok := meta["reserve_sequence"]; ok {
 			meta["reserve_sequence"] = reserveSequence
 		}
 
@@ -324,8 +321,8 @@ func (s *constructionAPIService) ConstructionMetadata(
 		if resourceId, ok := meta["resource_id"]; ok {
 			meta["resource_id"] = resourceId
 		}
-		if percentages, ok := meta["percentages"]; ok { //TODO: splits?
-			meta["percentages"] = percentages
+		if splits, ok := meta["splits"]; ok {
+			meta["splits"] = splits
 		}
 		if duration, ok := meta["duration"]; ok {
 			meta["duration"] = duration
@@ -633,9 +630,9 @@ func (s *constructionAPIService) ConstructionPreprocess(
 		}
 	}
 
-	if request.Metadata["block_height"] != nil {
-		options["block_height"] = request.Metadata["block_height"]
-	}
+	// if request.Metadata["block_height"] != nil {
+	// 	options["block_height"] = request.Metadata["block_height"]
+	// }
 	if request.Metadata["slashed_address"] != nil {
 		options["slashed_address"] = request.Metadata["slashed_address"]
 	}
