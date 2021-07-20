@@ -486,11 +486,11 @@ func (s *constructionAPIService) ConstructionParse(
 		tran := *tx.(*ttypes.SmartContractTx)
 		sender = tran.From.Address.String()
 		meta, ops = cmn.ParseSmartContractTx(tran, nil, cmn.SmartContractTx)
-	case *ttypes.DepositStakeTx:
-		tran := *tx.(*ttypes.DepositStakeTx)
+	case *ttypes.DepositStakeTx, *ttypes.DepositStakeTxV2:
+		tran := *tx.(*ttypes.DepositStakeTxV2)
 		sender = tran.Source.Address.String()
 		meta, ops = cmn.ParseDepositStakeTx(tran, nil, cmn.DepositStakeTx)
-	case *ttypes.WithdrawStakeTx, *ttypes.DepositStakeTxV2:
+	case *ttypes.WithdrawStakeTx:
 		tran := *tx.(*ttypes.WithdrawStakeTx)
 		sender = tran.Source.Address.String()
 		meta, ops = cmn.ParseWithdrawStakeTx(tran, nil, cmn.WithdrawStakeTx)
@@ -633,9 +633,9 @@ func (s *constructionAPIService) ConstructionPreprocess(
 	// if request.Metadata["block_height"] != nil {
 	// 	options["block_height"] = request.Metadata["block_height"]
 	// }
-	if request.Metadata["slashed_address"] != nil {
-		options["slashed_address"] = request.Metadata["slashed_address"]
-	}
+	// if request.Metadata["slashed_address"] != nil {
+	// 	options["slashed_address"] = request.Metadata["slashed_address"]
+	// }
 	if request.Metadata["reserve_sequence"] != nil {
 		options["reserve_sequence"] = request.Metadata["reserve_sequence"]
 	}
