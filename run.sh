@@ -2,7 +2,9 @@
 
 /go/bin/theta start --config=../privatenet/node --password="qwertyuiop" &
 
-ls ~/.thetacli/keys/encrypted/
+cd ~/.thetacli/keys/encrypted/
+ls
+pwd
 whoami
 # cp /go/src/github.com/thetatoken/privatenet/node/key/encrypted/* ~/.thetacli/keys/encrypted/
 sleep 10
