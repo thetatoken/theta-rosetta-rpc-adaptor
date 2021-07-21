@@ -39,7 +39,8 @@ func init() {
 	viper.SetDefault(CfgThetaRPCEndpoint, "http://127.0.0.1:16888/rpc")
 
 	viper.SetDefault(CfgRPCEnabled, true)
-	viper.SetDefault(CfgRPCHttpAddress, "127.0.0.1")
+	// viper.SetDefault(CfgRPCHttpAddress, "127.0.0.1")
+	viper.SetDefault(CfgRPCHttpAddress, "0.0.0.0")
 	viper.SetDefault(CfgRPCHttpPort, "18888")
 	viper.SetDefault(CfgRPCWSAddress, "127.0.0.1")
 	viper.SetDefault(CfgRPCWSPort, "18889")
