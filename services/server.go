@@ -57,13 +57,12 @@ func StopServers() error {
 // NewThetaRouter returns a Mux http.Handler from a collection of
 // Rosetta service controllers.
 func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
-	logger.Errorf("====================== 0")
 	status, err := cmn.GetStatus(client)
 	if err != nil {
 		return nil, err
 	}
 	cmn.SetChainId(status.ChainID)
-	logger.Errorf("====================== 1 chain id: %v", status.ChainID)
+	logger.Errorf("====================== 1 chain id: %v", status)
 
 	asserter, err := asserter.NewServer(
 		cmn.TxTypes(),
@@ -77,12 +76,10 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		[]string{},
 		false,
 	)
-	logger.Errorf("====================== 2 chain id: %v", status.ChainID)
 	if err != nil {
-		logger.Errorf("====================== 2.5 err: %v", err)
 		return nil, err
 	}
-	logger.Errorf("====================== 3 chain id: %v", status.ChainID)
+
 	networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
 	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)

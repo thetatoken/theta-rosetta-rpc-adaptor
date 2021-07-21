@@ -105,6 +105,7 @@ func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse theta RPC response: %v, %s", err, string(jsonBytes))
 	}
+	logger.Errorf("-------------- bytes: %v, len: %v", jsonBytes, len(jsonBytes))
 	trpcResult := GetStatusResult{}
 	json.Unmarshal(jsonBytes, &trpcResult)
 
