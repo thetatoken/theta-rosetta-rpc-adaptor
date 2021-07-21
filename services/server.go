@@ -62,7 +62,6 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		return nil, err
 	}
 	cmn.SetChainId(status.ChainID)
-	logger.Errorf("====================== 1 chain id: %v", status)
 
 	asserter, err := asserter.NewServer(
 		cmn.TxTypes(),
@@ -84,8 +83,7 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
 	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)
 	memPoolAPIController := server.NewMempoolAPIController(NewMemPoolAPIService(client), asserter)
-	// constructionAPIController := server.NewConstructionAPIController(NewConstructionAPIService(client), asserter)
-	// r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, constructionAPIController)
-	r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, memPoolAPIController)
+	constructionAPIController := server.NewConstructionAPIController(NewConstructionAPIService(client), asserter)
+	r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, memPoolAPIController, constructionAPIController)
 	return server.CorsMiddleware(server.LoggerMiddleware(r)), nil
 }
