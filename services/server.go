@@ -62,7 +62,7 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		return nil, err
 	}
 	cmn.SetChainId(status.ChainID)
-	logger.Infof("====================== chain id: %v", status.ChainID)
+	logger.Errorf("====================== 1 chain id: %v", status.ChainID)
 
 	asserter, err := asserter.NewServer(
 		cmn.TxTypes(),
@@ -70,15 +70,17 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		[]*types.NetworkIdentifier{
 			&types.NetworkIdentifier{
 				Blockchain: "theta",
-				Network:    "privatenet", //status.ChainID,
+				Network:    status.ChainID,
 			},
 		},
 		[]string{},
 		false,
 	)
+	logger.Errorf("====================== 2 chain id: %v", status.ChainID)
 	if err != nil {
 		return nil, err
 	}
+	logger.Errorf("====================== 3 chain id: %v", status.ChainID)
 	networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
 	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)
