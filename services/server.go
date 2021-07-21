@@ -70,7 +70,7 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		[]*types.NetworkIdentifier{
 			&types.NetworkIdentifier{
 				Blockchain: "theta",
-				Network:    status.ChainID,
+				Network:    "privatenet", //status.ChainID,
 			},
 		},
 		[]string{},
