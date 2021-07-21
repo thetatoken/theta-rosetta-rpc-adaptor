@@ -57,6 +57,7 @@ func StopServers() error {
 // NewThetaRouter returns a Mux http.Handler from a collection of
 // Rosetta service controllers.
 func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
+	logger.Errorf("====================== 0")
 	status, err := cmn.GetStatus(client)
 	if err != nil {
 		return nil, err
