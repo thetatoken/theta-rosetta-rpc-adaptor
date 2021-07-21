@@ -79,6 +79,7 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	)
 	logger.Errorf("====================== 2 chain id: %v", status.ChainID)
 	if err != nil {
+		logger.Errorf("====================== 2.5 err: %v", err)
 		return nil, err
 	}
 	logger.Errorf("====================== 3 chain id: %v", status.ChainID)
