@@ -12,7 +12,7 @@ import (
 	jrpc "github.com/ybbus/jsonrpc"
 
 	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
-	// "github.com/thetatoken/theta/version"
+	"github.com/thetatoken/theta/version"
 )
 
 type networkAPIService struct {
@@ -101,7 +101,7 @@ func (s *networkAPIService) NetworkOptions(
 	return &types.NetworkOptionsResponse{
 		Version: &types.Version{
 			RosettaVersion: viper.GetString(cmn.CfgRosettaVersion),
-			// NodeVersion:    version.Version,
+			NodeVersion:    version.Version,
 		},
 		Allow: &types.Allow{
 			OperationStatuses: []*types.OperationStatus{
