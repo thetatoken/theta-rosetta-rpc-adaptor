@@ -10,13 +10,10 @@ import (
 )
 
 const (
-	Theta = "THETA"
+	Theta = "theta"
 
 	// Decimals
 	CoinDecimals = 18
-
-	StatusSuccess = "success"
-	StatusFail    = "fail"
 )
 
 func GetThetaCurrency() *types.Currency {
@@ -206,8 +203,8 @@ func (s BlockStatus) String() string {
 		"valid",
 		"invalid",
 		"committed",
-		"finalized",
-		"indirectly finalized",
+		"directly_finalized",
+		"indirectly_finalized",
 		"trusted",
 		"disposed",
 	}[s]

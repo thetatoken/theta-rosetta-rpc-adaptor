@@ -106,12 +106,36 @@ func (s *networkAPIService) NetworkOptions(
 		Allow: &types.Allow{
 			OperationStatuses: []*types.OperationStatus{
 				{
-					Status:     cmn.StatusSuccess, //TODO ?
+					Status:     cmn.BlockStatusPending.String(),
+					Successful: false,
+				},
+				{
+					Status:     cmn.BlockStatusValid.String(),
 					Successful: true,
 				},
 				{
-					Status:     cmn.StatusFail, //TODO ?
+					Status:     cmn.BlockStatusInvalid.String(),
 					Successful: false,
+				},
+				{
+					Status:     cmn.BlockStatusCommitted.String(),
+					Successful: true,
+				},
+				{
+					Status:     cmn.BlockStatusDirectlyFinalized.String(),
+					Successful: true,
+				},
+				{
+					Status:     cmn.BlockStatusIndirectlyFinalized.String(),
+					Successful: true,
+				},
+				{
+					Status:     cmn.BlockStatusTrusted.String(),
+					Successful: true,
+				},
+				{
+					Status:     cmn.BlockStatusDisposed.String(),
+					Successful: true,
 				},
 			},
 			OperationTypes:          cmn.TxOpTypes(),
