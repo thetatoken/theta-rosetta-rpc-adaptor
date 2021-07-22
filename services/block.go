@@ -109,7 +109,7 @@ func (s *blockAPIService) Block(
 		block := types.Block{}
 		block.BlockIdentifier = &types.BlockIdentifier{Index: int64(tblock.Height), Hash: tblock.Hash.Hex()}
 		block.ParentBlockIdentifier = &types.BlockIdentifier{Index: int64(tblock.Height - 1), Hash: tblock.Parent.Hex()}
-		block.Timestamp = tblock.Timestamp.ToInt().Int64()
+		block.Timestamp = tblock.Timestamp.ToInt().Int64() * 1000
 		block.Metadata = map[string]interface{}{
 			"status":            tblock.Status.String(),
 			"transactions_hash": tblock.TxHash,
