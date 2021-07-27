@@ -86,7 +86,15 @@ func (s *blockAPIService) Block(
 	var rpcRes *jrpc.RPCResponse
 	var rpcErr error
 
-	if request.BlockIdentifier.Hash != nil {
+	if request.BlockIdentifier == nil || (request.BlockIdentifier.Index == nil && request.BlockIdentifier.Hash == nil) {
+		status, err := cmn.GetStatus(s.client)
+		if err != nil {
+			return nil, cmn.ErrMissingBlockHashOrHeight
+		}
+		rpcRes, rpcErr = s.client.Call("theta.GetBlockByHeight", GetBlockByHeightArgs{
+			Height: common.JSONUint64(status.CurrentHeight),
+		})
+	} else if request.BlockIdentifier.Hash != nil {
 		rpcRes, rpcErr = s.client.Call("theta.GetBlock", GetBlockArgs{
 			Hash: common.HexToHash(*request.BlockIdentifier.Hash),
 		})
@@ -94,8 +102,6 @@ func (s *blockAPIService) Block(
 		rpcRes, rpcErr = s.client.Call("theta.GetBlockByHeight", GetBlockByHeightArgs{
 			Height: common.JSONUint64(*request.BlockIdentifier.Index),
 		})
-	} else {
-		return nil, cmn.ErrMissingBlockHashOrHeight
 	}
 
 	if rpcErr != nil {
@@ -108,7 +114,13 @@ func (s *blockAPIService) Block(
 
 		block := types.Block{}
 		block.BlockIdentifier = &types.BlockIdentifier{Index: int64(tblock.Height), Hash: tblock.Hash.Hex()}
-		block.ParentBlockIdentifier = &types.BlockIdentifier{Index: int64(tblock.Height - 1), Hash: tblock.Parent.Hex()}
+		var parentHeight int64
+		if tblock.Height == 0 {
+			parentHeight = 0
+		} else {
+			parentHeight = int64(tblock.Height - 1)
+		}
+		block.ParentBlockIdentifier = &types.BlockIdentifier{Index: parentHeight, Hash: tblock.Parent.Hex()}
 		block.Timestamp = tblock.Timestamp.ToInt().Int64() * 1000
 		block.Metadata = map[string]interface{}{
 			"status":            tblock.Status.String(),

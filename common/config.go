@@ -40,9 +40,9 @@ func init() {
 
 	viper.SetDefault(CfgRPCEnabled, true)
 	viper.SetDefault(CfgRPCHttpAddress, "0.0.0.0")
-	viper.SetDefault(CfgRPCHttpPort, "18888")
+	viper.SetDefault(CfgRPCHttpPort, "8080")
 	viper.SetDefault(CfgRPCWSAddress, "0.0.0.0")
-	viper.SetDefault(CfgRPCWSPort, "18889")
+	viper.SetDefault(CfgRPCWSPort, "8081")
 	viper.SetDefault(CfgRPCMaxConnections, 2048)
 	viper.SetDefault(CfgRPCTimeoutSecs, 600)
 

@@ -11,15 +11,16 @@ import (
 	jrpc "github.com/ybbus/jsonrpc"
 
 	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
+	"github.com/thetatoken/theta/common"
 	ttypes "github.com/thetatoken/theta/ledger/types"
 )
 
 // var logger *log.Entry = log.WithFields(log.Fields{"prefix": "account"})
 
 type GetAccountArgs struct {
-	Address string `json:"address"`
-	// Height  JSONUint64 `json:"height"`
-	Preview bool `json:"preview"` // preview the account balance from the ScreenedView
+	Address string            `json:"address"`
+	Height  common.JSONUint64 `json:"height"`
+	Preview bool              `json:"preview"` // preview the account balance from the ScreenedView
 }
 
 type GetAccountResult struct {
@@ -48,27 +49,36 @@ func (s *accountAPIService) AccountBalance(
 	// 	return nil, terr
 	// }
 
-	// var height cmn.JSONUint64
-	// if request.BlockIdentifier == nil {
-	// 	height = 0
-	// } else {
-	// 	height = cmn.JSONUint64(*request.BlockIdentifier.Index)
-	// }
+	var height common.JSONUint64
+	if request.BlockIdentifier == nil {
+		height = 0
+	} else {
+		height = common.JSONUint64(*request.BlockIdentifier.Index)
+	}
 
 	status, err := cmn.GetStatus(s.client)
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
-		// Height:  height,
+		Height:  height, //TODO
 	})
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		account := GetAccountResult{}.Account
-		json.Unmarshal(jsonBytes, &account)
+		err := json.Unmarshal(jsonBytes, &account)
+		if err != nil {
+			return nil, err
+		}
 
 		resp := types.AccountBalanceResponse{}
 		if request.BlockIdentifier != nil {
-			resp.BlockIdentifier = &types.BlockIdentifier{Index: *request.BlockIdentifier.Index, Hash: *request.BlockIdentifier.Hash}
+			resp.BlockIdentifier = &types.BlockIdentifier{}
+			if request.BlockIdentifier.Index != nil {
+				resp.BlockIdentifier.Index = int64(*request.BlockIdentifier.Index)
+			}
+			if request.BlockIdentifier.Hash != nil {
+				resp.BlockIdentifier.Hash = *request.BlockIdentifier.Hash
+			}
 		} else {
 			resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
 		}

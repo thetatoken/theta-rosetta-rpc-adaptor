@@ -3,9 +3,9 @@ theta:
 rpc:
   enabled: true
   httpAddress: "127.0.0.1"
-  httpPort: 18888
+  httpPort: 8080
   wsAddress: "127.0.0.1"
-  wsPort: 18889
+  wsPort: 8081
   timeoutSecs: 600 
   maxConnections: 2048
 log:

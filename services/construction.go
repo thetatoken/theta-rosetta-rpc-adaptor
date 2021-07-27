@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -13,6 +15,8 @@ import (
 
 	"github.com/thetatoken/theta/common"
 	"github.com/thetatoken/theta/crypto"
+	"github.com/thetatoken/theta/crypto/secp256k1"
+	"github.com/thetatoken/theta/crypto/sha3"
 	ttypes "github.com/thetatoken/theta/ledger/types"
 
 	jrpc "github.com/ybbus/jsonrpc"
@@ -163,19 +167,33 @@ func (s *constructionAPIService) ConstructionDerive(
 		return nil, terr
 	}
 
-	rawPub := request.PublicKey.Bytes
-	pk, err := crypto.PublicKeyFromBytes(rawPub)
+	pubkey, err := decompressPubkey(request.PublicKey.Bytes)
 	if err != nil {
 		terr := cmn.ErrInvalidInputParam
-		terr.Message += "invalid public key: " + err.Error()
+		terr.Message += "Unable to decompress public key: " + err.Error()
 		return nil, terr
 	}
 
+	addr := pubkeyToAddress(*pubkey)
 	return &types.ConstructionDeriveResponse{
 		AccountIdentifier: &types.AccountIdentifier{
-			Address: pk.Address().String(),
+			Address: addr.Hex(),
 		},
 	}, nil
+
+	// rawPub := request.PublicKey.Bytes
+	// pk, err := crypto.PublicKeyFromBytes(rawPub)
+	// if err != nil {
+	// 	terr := cmn.ErrInvalidInputParam
+	// 	terr.Message += "Invalid public key: " + err.Error()
+	// 	return nil, terr
+	// }
+
+	// return &types.ConstructionDeriveResponse{
+	// 	AccountIdentifier: &types.AccountIdentifier{
+	// 		Address: pk.Address().String(),
+	// 	},
+	// }, nil
 }
 
 // ConstructionHash implements the /construction/hash endpoint.
@@ -755,4 +773,39 @@ func validateInputAdvanced(acc *ttypes.Account, signBytes []byte, in ttypes.TxIn
 	}
 
 	return nil
+}
+
+// decompressPubkey parses a public key in the 33-byte compressed format.
+func decompressPubkey(pubkey []byte) (*ecdsa.PublicKey, error) {
+	x, y := secp256k1.DecompressPubkey(pubkey)
+	if x == nil {
+		return nil, fmt.Errorf("invalid public key")
+	}
+	return &ecdsa.PublicKey{X: x, Y: y, Curve: s256()}, nil
+}
+
+// s256 returns an instance of the secp256k1 curve.
+func s256() elliptic.Curve {
+	return secp256k1.S256()
+}
+
+func pubkeyToAddress(p ecdsa.PublicKey) common.Address {
+	pubBytes := fromECDSAPub(&p)
+	return common.BytesToAddress(keccak256(pubBytes[1:])[12:])
+}
+
+func fromECDSAPub(pub *ecdsa.PublicKey) []byte {
+	if pub == nil || pub.X == nil || pub.Y == nil {
+		return nil
+	}
+	return elliptic.Marshal(s256(), pub.X, pub.Y)
+}
+
+// keccak256 calculates and returns the Keccak256 hash of the input data.
+func keccak256(data ...[]byte) []byte {
+	d := sha3.NewKeccak256()
+	for _, b := range data {
+		d.Write(b)
+	}
+	return d.Sum(nil)
 }
