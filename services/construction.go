@@ -47,112 +47,6 @@ func NewConstructionAPIService(client jrpc.RPCClient) server.ConstructionAPIServ
 	}
 }
 
-// ConstructionCombine implements the /construction/combine endpoint.
-func (s *constructionAPIService) ConstructionCombine(
-	ctx context.Context,
-	request *types.ConstructionCombineRequest,
-) (*types.ConstructionCombineResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
-
-	rawTx, err := hex.DecodeString(request.UnsignedTransaction)
-	if err != nil {
-		terr := cmn.ErrUnableToParseTx
-		terr.Message += err.Error()
-		return nil, terr
-	}
-
-	tx, err := ttypes.TxFromBytes(rawTx)
-	if err != nil {
-		terr := cmn.ErrUnableToParseTx
-		terr.Message += "invalid transaction format: " + err.Error()
-		return nil, terr
-	}
-
-	signBytes := tx.SignBytes(cmn.GetChainId())
-
-	if len(request.Signatures) != 1 {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "need exact 1 signature"
-		return nil, terr
-	}
-	sig := &crypto.Signature{}
-	sig.UnmarshalJSON(request.Signatures[0].Bytes)
-
-	signer := common.HexToAddress(request.Signatures[0].SigningPayload.AccountIdentifier.Address)
-	var in ttypes.TxInput
-
-	switch tx.(type) {
-	case *ttypes.CoinbaseTx:
-		tran := *tx.(*ttypes.CoinbaseTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Proposer
-	case *ttypes.SlashTx:
-		tran := *tx.(*ttypes.SlashTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Proposer
-	case *ttypes.SendTx:
-		tran := *tx.(*ttypes.SendTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Inputs[0]
-	case *ttypes.ReserveFundTx:
-		tran := *tx.(*ttypes.ReserveFundTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Source
-	case *ttypes.ReleaseFundTx:
-		tran := *tx.(*ttypes.ReleaseFundTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Source
-	case *ttypes.ServicePaymentTx:
-		tran := *tx.(*ttypes.ServicePaymentTx)
-		// tran.SetSignature(signer, sig)
-		in = tran.Source
-	case *ttypes.SplitRuleTx:
-		tran := *tx.(*ttypes.SplitRuleTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Initiator
-	case *ttypes.SmartContractTx:
-		tran := *tx.(*ttypes.SmartContractTx)
-		tran.SetSignature(signer, sig)
-		in = tran.From
-	case *ttypes.DepositStakeTx, *ttypes.DepositStakeTxV2:
-		tran := *tx.(*ttypes.DepositStakeTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Source
-	case *ttypes.WithdrawStakeTx:
-		tran := *tx.(*ttypes.WithdrawStakeTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Source
-	case *ttypes.StakeRewardDistributionTx:
-		tran := *tx.(*ttypes.StakeRewardDistributionTx)
-		tran.SetSignature(signer, sig)
-		in = tran.Holder
-	default:
-		terr := cmn.ErrUnableToParseTx
-		terr.Message += "unsupported tx type"
-		return nil, terr
-	}
-
-	// Check signatures
-	if !in.Signature.Verify(signBytes, signer) {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += fmt.Sprintf("Signature verification failed, SignBytes: %v", hex.EncodeToString(signBytes))
-		return nil, terr
-	}
-
-	raw, err := ttypes.TxToBytes(tx)
-	if err != nil {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "Failed to encode transaction"
-		return nil, terr
-	}
-
-	return &types.ConstructionCombineResponse{
-		SignedTransaction: hex.EncodeToString(raw),
-	}, nil
-}
-
 // ConstructionDerive implements the /construction/derive endpoint.
 func (s *constructionAPIService) ConstructionDerive(
 	ctx context.Context,
@@ -181,20 +75,6 @@ func (s *constructionAPIService) ConstructionDerive(
 			Address: addr.Hex(),
 		},
 	}, nil
-
-	// rawPub := request.PublicKey.Bytes
-	// pk, err := crypto.PublicKeyFromBytes(rawPub)
-	// if err != nil {
-	// 	terr := cmn.ErrInvalidInputParam
-	// 	terr.Message += "Invalid public key: " + err.Error()
-	// 	return nil, terr
-	// }
-
-	// return &types.ConstructionDeriveResponse{
-	// 	AccountIdentifier: &types.AccountIdentifier{
-	// 		Address: pk.Address().String(),
-	// 	},
-	// }, nil
 }
 
 // ConstructionHash implements the /construction/hash endpoint.
@@ -224,6 +104,109 @@ func (s *constructionAPIService) ConstructionHash(
 		TransactionIdentifier: &types.TransactionIdentifier{
 			Hash: hash.String(),
 		},
+	}, nil
+}
+
+// ConstructionPreprocess implements the /construction/preprocess endpoint.
+func (s *constructionAPIService) ConstructionPreprocess(
+	ctx context.Context,
+	request *types.ConstructionPreprocessRequest,
+) (*types.ConstructionPreprocessResponse, *types.Error) {
+	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
+	// 	return nil, err
+	// }
+
+	options := make(map[string]interface{})
+	options["sender"] = request.Operations[0].Account.Address
+
+	if request.Metadata["type"] != nil {
+		options["type"] = request.Metadata["type"]
+	} else {
+		switch request.Operations[0].Type {
+		case cmn.CoinbaseTxProposer.String():
+			options["type"] = cmn.CoinbaseTx
+		case cmn.SlashTxProposer.String():
+			options["type"] = cmn.SlashTx
+		case cmn.SendTxInput.String():
+			options["type"] = cmn.SendTx
+			options["fee_multiplier"] = len(request.Operations)
+		case cmn.ReserveFundTxSource.String():
+			options["type"] = cmn.ReserveFundTx
+		case cmn.ReleaseFundTxSource.String():
+			options["type"] = cmn.ReleaseFundTx
+		case cmn.ServicePaymentTxSource.String():
+			options["type"] = cmn.ServicePaymentTx
+		case cmn.SplitRuleTxInitiator.String():
+			options["type"] = cmn.SplitRuleTx
+		case cmn.SmartContractTxFrom.String():
+			options["type"] = cmn.SmartContractTx
+		case cmn.DepositStakeTxSource.String():
+			options["type"] = cmn.DepositStakeTx
+		case cmn.WithdrawStakeTxSource.String():
+			options["type"] = cmn.WithdrawStakeTx
+		case cmn.StakeRewardDistributionTxHolder.String():
+			options["type"] = cmn.StakeRewardDistributionTx
+		default:
+			terr := cmn.ErrUnableToParseTx
+			terr.Message += "unsupported tx type"
+			return nil, terr
+		}
+	}
+
+	// if request.Metadata["block_height"] != nil {
+	// 	options["block_height"] = request.Metadata["block_height"]
+	// }
+	// if request.Metadata["slashed_address"] != nil {
+	// 	options["slashed_address"] = request.Metadata["slashed_address"]
+	// }
+	if request.Metadata["reserve_sequence"] != nil {
+		options["reserve_sequence"] = request.Metadata["reserve_sequence"]
+	}
+	if request.Metadata["slash_proof"] != nil {
+		options["slash_proof"] = request.Metadata["slash_proof"]
+	}
+	if request.Metadata["fee"] != nil {
+		options["fee"] = request.Metadata["fee"]
+	}
+	if request.Metadata["collateral"] != nil {
+		options["collateral"] = request.Metadata["collateral"]
+	}
+	if request.Metadata["resource_ids"] != nil {
+		options["resource_ids"] = request.Metadata["resource_ids"]
+	}
+	if request.Metadata["duration"] != nil {
+		options["duration"] = request.Metadata["duration"]
+	}
+	if request.Metadata["reserve_sequence"] != nil {
+		options["reserve_sequence"] = request.Metadata["reserve_sequence"]
+	}
+	if request.Metadata["payment_sequence"] != nil {
+		options["payment_sequence"] = request.Metadata["payment_sequence"]
+	}
+	if request.Metadata["resource_id"] != nil {
+		options["resource_id"] = request.Metadata["resource_id"]
+	}
+	if request.Metadata["splits"] != nil {
+		options["splits"] = request.Metadata["splits"]
+	}
+	if request.Metadata["gas_limit"] != nil {
+		options["gas_limit"] = request.Metadata["gas_limit"]
+	}
+	if request.Metadata["gas_price"] != nil {
+		options["gas_price"] = request.Metadata["gas_price"]
+	}
+	if request.Metadata["data"] != nil {
+		options["data"] = request.Metadata["data"]
+	}
+	if request.Metadata["purpose"] != nil {
+		options["purpose"] = request.Metadata["purpose"]
+	}
+	if request.Metadata["split_basis_point"] != nil {
+		options["split_basis_point"] = request.Metadata["split_basis_point"]
+	}
+
+	return &types.ConstructionPreprocessResponse{
+		Options: options,
 	}, nil
 }
 
@@ -438,6 +421,44 @@ func (s *constructionAPIService) ConstructionMetadata(
 	}, nil
 }
 
+// ConstructionPayloads implements the /construction/payloads endpoint.
+func (s *constructionAPIService) ConstructionPayloads(
+	ctx context.Context,
+	request *types.ConstructionPayloadsRequest,
+) (*types.ConstructionPayloadsResponse, *types.Error) {
+	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
+	// 	return nil, err
+	// }
+
+	tx, err := cmn.AssembleTx(request.Operations, request.Metadata)
+	if err != nil {
+		terr := cmn.ErrServiceInternal
+		terr.Message += err.Error()
+		return nil, terr
+	}
+
+	raw, err := ttypes.TxToBytes(tx)
+	if err != nil {
+		terr := cmn.ErrServiceInternal
+		terr.Message += err.Error()
+		return nil, terr
+	}
+	unsignedTx := hex.EncodeToString(raw)
+
+	return &types.ConstructionPayloadsResponse{
+		UnsignedTransaction: unsignedTx,
+		Payloads: []*types.SigningPayload{
+			&types.SigningPayload{
+				AccountIdentifier: &types.AccountIdentifier{
+					Address: request.Operations[0].Account.Address,
+				},
+				Bytes:         raw,
+				SignatureType: SignatureType,
+			},
+		},
+	}, nil
+}
+
 // ConstructionParse implements the /construction/parse endpoint.
 func (s *constructionAPIService) ConstructionParse(
 	ctx context.Context,
@@ -446,6 +467,12 @@ func (s *constructionAPIService) ConstructionParse(
 	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
 	// 	return nil, terr
 	// }
+
+	if request.Signed {
+		//TODO
+	} else {
+		//TODO
+	}
 
 	rawTx, err := hex.DecodeString(request.Transaction)
 	if err != nil {
@@ -532,147 +559,109 @@ func (s *constructionAPIService) ConstructionParse(
 	return resp, nil
 }
 
-// ConstructionPayloads implements the /construction/payloads endpoint.
-func (s *constructionAPIService) ConstructionPayloads(
+// ConstructionCombine implements the /construction/combine endpoint.
+func (s *constructionAPIService) ConstructionCombine(
 	ctx context.Context,
-	request *types.ConstructionPayloadsRequest,
-) (*types.ConstructionPayloadsResponse, *types.Error) {
-	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
-	// 	return nil, err
+	request *types.ConstructionCombineRequest,
+) (*types.ConstructionCombineResponse, *types.Error) {
+	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
+	// 	return nil, terr
 	// }
 
-	tx, err := cmn.AssembleTx(request.Operations, request.Metadata)
+	rawTx, err := hex.DecodeString(request.UnsignedTransaction)
 	if err != nil {
-		terr := cmn.ErrServiceInternal
+		terr := cmn.ErrUnableToParseTx
 		terr.Message += err.Error()
 		return nil, terr
 	}
 
-	// raw := tx.SignBytes(cmn.GetChainId())
-	// unsignedTxJSON, err := json.Marshal(&tx)
+	tx, err := ttypes.TxFromBytes(rawTx)
+	if err != nil {
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += err.Error()
+		return nil, terr
+	}
+
+	signBytes := tx.SignBytes(cmn.GetChainId())
+
+	if len(request.Signatures) != 1 {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += "need exact 1 signature"
+		return nil, terr
+	}
+	sig := &crypto.Signature{}
+	sig.UnmarshalJSON(request.Signatures[0].Bytes)
+
+	signer := common.HexToAddress(request.Signatures[0].SigningPayload.AccountIdentifier.Address)
+	var in ttypes.TxInput
+
+	switch tx.(type) {
+	case *ttypes.CoinbaseTx:
+		tran := *tx.(*ttypes.CoinbaseTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Proposer
+	case *ttypes.SlashTx:
+		tran := *tx.(*ttypes.SlashTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Proposer
+	case *ttypes.SendTx:
+		tran := *tx.(*ttypes.SendTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Inputs[0]
+	case *ttypes.ReserveFundTx:
+		tran := *tx.(*ttypes.ReserveFundTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Source
+	case *ttypes.ReleaseFundTx:
+		tran := *tx.(*ttypes.ReleaseFundTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Source
+	case *ttypes.ServicePaymentTx:
+		tran := *tx.(*ttypes.ServicePaymentTx)
+		// tran.SetSignature(signer, sig)
+		in = tran.Source
+	case *ttypes.SplitRuleTx:
+		tran := *tx.(*ttypes.SplitRuleTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Initiator
+	case *ttypes.SmartContractTx:
+		tran := *tx.(*ttypes.SmartContractTx)
+		tran.SetSignature(signer, sig)
+		in = tran.From
+	case *ttypes.DepositStakeTx, *ttypes.DepositStakeTxV2:
+		tran := *tx.(*ttypes.DepositStakeTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Source
+	case *ttypes.WithdrawStakeTx:
+		tran := *tx.(*ttypes.WithdrawStakeTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Source
+	case *ttypes.StakeRewardDistributionTx:
+		tran := *tx.(*ttypes.StakeRewardDistributionTx)
+		tran.SetSignature(signer, sig)
+		in = tran.Holder
+	default:
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += "unsupported tx type"
+		return nil, terr
+	}
+
+	// Check signatures
+	if !in.Signature.Verify(signBytes, signer) {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += fmt.Sprintf("Signature verification failed, SignBytes: %v", hex.EncodeToString(signBytes))
+		return nil, terr
+	}
 
 	raw, err := ttypes.TxToBytes(tx)
 	if err != nil {
-		terr := cmn.ErrServiceInternal
-		terr.Message += err.Error()
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += "Failed to encode transaction"
 		return nil, terr
 	}
-	unsignedTx := hex.EncodeToString(raw)
 
-	return &types.ConstructionPayloadsResponse{
-		UnsignedTransaction: unsignedTx,
-		Payloads: []*types.SigningPayload{
-			&types.SigningPayload{
-				AccountIdentifier: &types.AccountIdentifier{
-					Address: request.Operations[0].Account.Address,
-				},
-				Bytes:         raw,
-				SignatureType: SignatureType,
-			},
-		},
-	}, nil
-}
-
-// ConstructionPreprocess implements the /construction/preprocess endpoint.
-func (s *constructionAPIService) ConstructionPreprocess(
-	ctx context.Context,
-	request *types.ConstructionPreprocessRequest,
-) (*types.ConstructionPreprocessResponse, *types.Error) {
-	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
-	// 	return nil, err
-	// }
-
-	options := make(map[string]interface{})
-	options["sender"] = request.Operations[0].Account.Address
-
-	if request.Metadata["type"] != nil {
-		options["type"] = request.Metadata["type"]
-	} else {
-		switch request.Operations[0].Type {
-		case cmn.CoinbaseTxProposer.String():
-			options["type"] = cmn.CoinbaseTx //.String()
-		case cmn.SlashTxProposer.String():
-			options["type"] = cmn.SlashTx //.String()
-		case cmn.SendTxInput.String():
-			options["type"] = cmn.SendTx //.String()
-			options["fee_multiplier"] = len(request.Operations)
-		case cmn.ReserveFundTxSource.String():
-			options["type"] = cmn.ReserveFundTx //.String()
-		case cmn.ReleaseFundTxSource.String():
-			options["type"] = cmn.ReleaseFundTx //.String()
-		case cmn.ServicePaymentTxSource.String():
-			options["type"] = cmn.ServicePaymentTx //.String()
-		case cmn.SplitRuleTxInitiator.String():
-			options["type"] = cmn.SplitRuleTx //.String()
-		case cmn.SmartContractTxFrom.String():
-			options["type"] = cmn.SmartContractTx //.String()
-		case cmn.DepositStakeTxSource.String():
-			options["type"] = cmn.DepositStakeTx //.String()
-		case cmn.WithdrawStakeTxSource.String():
-			options["type"] = cmn.WithdrawStakeTx //.String()
-		case cmn.StakeRewardDistributionTxHolder.String():
-			options["type"] = cmn.StakeRewardDistributionTx //.String()
-		default:
-			terr := cmn.ErrUnableToParseTx
-			terr.Message += "unsupported tx type"
-			return nil, terr
-		}
-	}
-
-	// if request.Metadata["block_height"] != nil {
-	// 	options["block_height"] = request.Metadata["block_height"]
-	// }
-	// if request.Metadata["slashed_address"] != nil {
-	// 	options["slashed_address"] = request.Metadata["slashed_address"]
-	// }
-	if request.Metadata["reserve_sequence"] != nil {
-		options["reserve_sequence"] = request.Metadata["reserve_sequence"]
-	}
-	if request.Metadata["slash_proof"] != nil {
-		options["slash_proof"] = request.Metadata["slash_proof"]
-	}
-	if request.Metadata["fee"] != nil {
-		options["fee"] = request.Metadata["fee"]
-	}
-	if request.Metadata["collateral"] != nil {
-		options["collateral"] = request.Metadata["collateral"]
-	}
-	if request.Metadata["resource_ids"] != nil {
-		options["resource_ids"] = request.Metadata["resource_ids"]
-	}
-	if request.Metadata["duration"] != nil {
-		options["duration"] = request.Metadata["duration"]
-	}
-	if request.Metadata["reserve_sequence"] != nil {
-		options["reserve_sequence"] = request.Metadata["reserve_sequence"]
-	}
-	if request.Metadata["payment_sequence"] != nil {
-		options["payment_sequence"] = request.Metadata["payment_sequence"]
-	}
-	if request.Metadata["resource_id"] != nil {
-		options["resource_id"] = request.Metadata["resource_id"]
-	}
-	if request.Metadata["splits"] != nil {
-		options["splits"] = request.Metadata["splits"]
-	}
-	if request.Metadata["gas_limit"] != nil {
-		options["gas_limit"] = request.Metadata["gas_limit"]
-	}
-	if request.Metadata["gas_price"] != nil {
-		options["gas_price"] = request.Metadata["gas_price"]
-	}
-	if request.Metadata["data"] != nil {
-		options["data"] = request.Metadata["data"]
-	}
-	if request.Metadata["purpose"] != nil {
-		options["purpose"] = request.Metadata["purpose"]
-	}
-	if request.Metadata["split_basis_point"] != nil {
-		options["split_basis_point"] = request.Metadata["split_basis_point"]
-	}
-
-	return &types.ConstructionPreprocessResponse{
-		Options: options,
+	return &types.ConstructionCombineResponse{
+		SignedTransaction: hex.EncodeToString(raw),
 	}, nil
 }
 
