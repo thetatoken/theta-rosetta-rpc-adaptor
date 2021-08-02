@@ -177,12 +177,12 @@ func ParseSlashTx(slashTx ttypes.SlashTx, status *string, txType TxType) (metada
 func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type": txType,
-		"fee":  sendTx.Fee.TFuelWei.Int64,
+		"fee":  sendTx.Fee.TFuelWei.String(),
 	}
 
 	var i int64
 	for _, input := range sendTx.Inputs {
-		sigBytes, _ := input.Signature.MarshalJSON()
+		// sigBytes, _ := input.Signature.MarshalJSON()
 
 		thetaWei := "0"
 		if input.Coins.ThetaWei != nil {
@@ -193,7 +193,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			Type:                SendTxInput.String(),
 			Account:             &types.AccountIdentifier{Address: input.Address.String()},
 			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+			// Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
 		}
 		if status != nil {
 			inputOp.Status = status
@@ -213,7 +213,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			Type:                SendTxInput.String(),
 			Account:             &types.AccountIdentifier{Address: input.Address.String()},
 			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+			// Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
 		}
 		if status != nil {
 			inputOp.Status = status
@@ -682,7 +682,8 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 	if typ, ok = meta["type"]; !ok {
 		return nil, fmt.Errorf("missing tx type")
 	}
-	txType := typ.(TxType)
+
+	txType := TxType(typ.(float64))
 
 	switch txType {
 	case CoinbaseTx:
@@ -731,33 +732,52 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 	case SendTx:
 		var inputs []ttypes.TxInput
 		var outputs []ttypes.TxOutput
-		for i := 0; i < len(ops); i += 2 {
-			thetaWei := new(big.Int)
-			thetaWei.SetString(ops[i].Amount.Value, 10)
-			tfuelWei := new(big.Int)
-			tfuelWei.SetString(ops[i+1].Amount.Value, 10)
 
-			if ops[i].Type == SendTxInput.String() {
-				sig := &crypto.Signature{}
-				sig.UnmarshalJSON(ops[i].Metadata["signature"].([]byte))
-
-				input := ttypes.TxInput{
-					Address:   cmn.HexToAddress(ops[i].Account.Address),
-					Coins:     ttypes.Coins{ThetaWei: thetaWei, TFuelWei: tfuelWei},
-					Sequence:  ops[i].Metadata["sequence"].(uint64),
-					Signature: sig,
-				}
-				inputs = append(inputs, input)
-			} else if ops[i].Type == SendTxOutput.String() {
-				output := ttypes.TxOutput{
-					Address: cmn.HexToAddress(ops[i].Account.Address),
-					Coins:   ttypes.Coins{ThetaWei: thetaWei, TFuelWei: tfuelWei},
-				}
-				outputs = append(outputs, output)
+		inputMap := make(map[string][]*types.Operation)
+		outputMap := make(map[string][]*types.Operation)
+		for _, op := range ops {
+			if op.Type == SendTxInput.String() {
+				inputMap[op.Account.Address] = append(inputMap[op.Account.Address], op)
+			} else if op.Type == SendTxOutput.String() {
+				outputMap[op.Account.Address] = append(outputMap[op.Account.Address], op)
 			}
 		}
+
+		for addr, ops := range inputMap {
+			input := ttypes.TxInput{
+				Address: cmn.HexToAddress(addr),
+				// Coins:   ttypes.Coins{},
+			}
+			for _, op := range ops {
+				coin := new(big.Int)
+				coin.SetString(op.Amount.Value, 10)
+				if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomThetaWei) {
+					input.Coins.ThetaWei = coin
+				} else if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomTFuelWei) {
+					input.Coins.TFuelWei = coin
+				}
+			}
+			inputs = append(inputs, input)
+		}
+		for addr, ops := range outputMap {
+			output := ttypes.TxOutput{
+				Address: cmn.HexToAddress(addr),
+				// Coins:   ttypes.Coins{},
+			}
+			for _, op := range ops {
+				coin := new(big.Int)
+				coin.SetString(op.Amount.Value, 10)
+				if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomThetaWei) {
+					output.Coins.ThetaWei = coin
+				} else if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomTFuelWei) {
+					output.Coins.TFuelWei = coin
+				}
+			}
+			outputs = append(outputs, output)
+		}
+
 		tx = &ttypes.SendTx{
-			Fee:     ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Fee:     ttypes.Coins{TFuelWei: big.NewInt(int64(meta["fee"].(float64)))},
 			Inputs:  inputs,
 			Outputs: outputs,
 		}

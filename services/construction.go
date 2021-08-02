@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -251,7 +252,10 @@ func (s *constructionAPIService) ConstructionMetadata(
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		account := GetAccountResult{}.Account
-		json.Unmarshal(jsonBytes, &account)
+		err := json.Unmarshal(jsonBytes, &account)
+		if err != nil {
+			return nil, err
+		}
 		return account.Sequence, nil
 	}
 
@@ -270,92 +274,114 @@ func (s *constructionAPIService) ConstructionMetadata(
 		return nil, terr
 	}
 
-	switch txType.(string) {
-	case cmn.CoinbaseTx.String():
+	meta["type"] = txType
+
+	var height uint64
+	var suggestedFee *big.Int
+	if fee, ok := meta["fee"]; ok {
+		suggestedFee = new(big.Int)
+		suggestedFee.SetUint64(fee.(uint64))
+	} else {
+		if height == 0 {
+			status, _ := cmn.GetStatus(s.client)
+			height = uint64(status.CurrentHeight)
+		}
+		switch cmn.TxType(txType.(float64)) {
+		case cmn.SendTx:
+			if feeMultiplier, ok := request.Options["fee_multiplier"]; ok {
+				suggestedFee = ttypes.GetSendTxMinimumTransactionFeeTFuelWei(uint64(feeMultiplier.(float64)), height)
+			} else {
+				terr := cmn.ErrInvalidInputParam
+				terr.Message += "missing fee multiplier for send tx"
+				return nil, terr
+			}
+		case cmn.SmartContractTx:
+			suggestedFee = ttypes.GetMinimumGasPrice(height)
+		default:
+			suggestedFee = ttypes.GetMinimumTransactionFeeTFuelWei(height)
+		}
+
+		meta["fee"] = suggestedFee
+	}
+
+	switch cmn.TxType(txType.(float64)) {
+	case cmn.CoinbaseTx:
 		// if blockHeight, ok := request.Options["block_height"]; ok {
 		// 	meta["block_height"] = blockHeight
 		// }
 
-	case cmn.SlashTx.String():
-		// if slashedAddr, ok := meta["slashed_address"]; ok {
+	case cmn.SlashTx:
+		// if slashedAddr, ok := request.Options["slashed_address"]; ok {
 		// 	meta["slashed_address"] = slashedAddr
 		// }
-		// if reserveSeq, ok := meta["reserve_sequence"]; ok {
+		// if reserveSeq, ok := request.Options["reserve_sequence"]; ok {
 		// 	meta["reserve_sequence"] = reserveSeq
 		// }
-		// if slashProof, ok := meta["slash_proof"]; ok {
+		// if slashProof, ok := request.Options["slash_proof"]; ok {
 		// 	meta["slash_proof"] = slashProof
 		// }
 
-	case cmn.SendTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		} else { //TODO
-			// if request.feeMultiplier != nil {
-			// 	terr := cmn.ErrInvalidInputParam
-			// 	terr.Message += "missing fee multiplier for send tx"
-			// 	return nil, terr
-			// }
-			// gasPrice = ttypes.GetSendTxMinimumTransactionFeeTFuelWei(uint64(*opts.feeMultiplier), height).Uint64()
-		}
+	case cmn.SendTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
 
-	case cmn.ReserveFundTx.String():
-		if collateral, ok := meta["collateral"]; ok {
+	case cmn.ReserveFundTx:
+		if collateral, ok := request.Options["collateral"]; ok {
 			meta["collateral"] = collateral
 		}
-		if resourceIds, ok := meta["resource_ids"]; ok {
+		if resourceIds, ok := request.Options["resource_ids"]; ok {
 			meta["resource_ids"] = resourceIds
 		}
-		if duration, ok := meta["duration"]; ok {
+		if duration, ok := request.Options["duration"]; ok {
 			meta["duration"] = duration
 		}
 
-	case cmn.ReleaseFundTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if reserveSeq, ok := meta["reserve_seq"]; ok {
+	case cmn.ReleaseFundTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if reserveSeq, ok := request.Options["reserve_seq"]; ok {
 			meta["reserve_seq"] = reserveSeq
 		}
 
-	case cmn.ServicePaymentTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if resourceId, ok := meta["resource_id"]; ok {
+	case cmn.ServicePaymentTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if resourceId, ok := request.Options["resource_id"]; ok {
 			meta["resource_id"] = resourceId
 		}
-		if paymentSequence, ok := meta["payment_sequence"]; ok {
+		if paymentSequence, ok := request.Options["payment_sequence"]; ok {
 			meta["payment_sequence"] = paymentSequence
 		}
-		if reserveSequence, ok := meta["reserve_sequence"]; ok {
+		if reserveSequence, ok := request.Options["reserve_sequence"]; ok {
 			meta["reserve_sequence"] = reserveSequence
 		}
 
-	case cmn.SplitRuleTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if resourceId, ok := meta["resource_id"]; ok {
+	case cmn.SplitRuleTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if resourceId, ok := request.Options["resource_id"]; ok {
 			meta["resource_id"] = resourceId
 		}
-		if splits, ok := meta["splits"]; ok {
+		if splits, ok := request.Options["splits"]; ok {
 			meta["splits"] = splits
 		}
-		if duration, ok := meta["duration"]; ok {
+		if duration, ok := request.Options["duration"]; ok {
 			meta["duration"] = duration
 		}
 
-	case cmn.SmartContractTx.String():
-		var height uint64
-		if gasLimit, ok := meta["gas_limit"]; ok {
+	case cmn.SmartContractTx:
+		if gasLimit, ok := request.Options["gas_limit"]; ok {
 			meta["gas_limit"] = gasLimit
 		} else {
 			status, _ := cmn.GetStatus(s.client)
 			height = uint64(status.CurrentHeight)
 			gasLimit = ttypes.GetMaxGasLimit(height).Uint64()
 		}
-		if gasPrice, ok := meta["gas_price"]; ok {
+		if gasPrice, ok := request.Options["gas_price"]; ok {
 			meta["gas_price"] = gasPrice
 		} else {
 			if height == 0 {
@@ -364,79 +390,45 @@ func (s *constructionAPIService) ConstructionMetadata(
 			}
 			gasPrice = ttypes.GetMinimumGasPrice(height).Uint64()
 		}
-		if data, ok := meta["data"]; ok {
+		if data, ok := request.Options["data"]; ok {
 			meta["data"] = data
 		}
 
-	case cmn.DepositStakeTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if purpose, ok := meta["purpose"]; ok {
+	case cmn.DepositStakeTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if purpose, ok := request.Options["purpose"]; ok {
 			meta["purpose"] = purpose
 		}
 
-	case cmn.WithdrawStakeTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if purpose, ok := meta["purpose"]; ok {
+	case cmn.WithdrawStakeTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if purpose, ok := request.Options["purpose"]; ok {
 			meta["purpose"] = purpose
 		}
 
-	case cmn.StakeRewardDistributionTx.String():
-		if fee, ok := meta["fee"]; ok {
-			meta["fee"] = fee
-		}
-		if splitBasisPoint, ok := meta["split_basis_point"]; ok {
+	case cmn.StakeRewardDistributionTx:
+		// if fee, ok := request.Options["fee"]; ok {
+		// 	meta["fee"] = fee
+		// }
+		if splitBasisPoint, ok := request.Options["split_basis_point"]; ok {
 			meta["split_basis_point"] = splitBasisPoint
 		}
 
 	default:
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += "unsupported tx type"
+		return nil, terr
 	}
-
-	// var gasLimit, gasPrice uint64
-	// var height uint64
-
-	// if opts.gasPrice == nil {
-	// 	if height == 0 {
-	// 		status, _ := cmn.GetStatus(s.client)
-	// 		height = uint64(status.CurrentHeight)
-	// 	}
-	// 	switch opts.typ {
-	// 	case cmn.SendTxInput:
-	// 		if opts.feeMultiplier != nil {
-	// 			terr := cmn.ErrInvalidInputParam
-	// 			terr.Message += "missing fee multiplier for send tx"
-	// 			return nil, terr
-	// 		}
-	// 		gasPrice = ttypes.GetSendTxMinimumTransactionFeeTFuelWei(uint64(*opts.feeMultiplier), height).Uint64()
-	// 	case cmn.SmartContractTxFrom:
-	// 		gasPrice = ttypes.GetMinimumGasPrice(height).Uint64()
-	// 	default:
-	// 		gasPrice = ttypes.GetMinimumTransactionFeeTFuelWei(height).Uint64()
-	// 	}
-	// } else {
-	// 	gasPrice = *opts.gasPrice
-	// }
-	// meta["gasLimit"] = gasLimit
-	// meta["gasPrice"] = gasPrice
-	// suggestedFee := new(big.Int).Mul(
-	// 	new(big.Int).SetUint64(gasPrice),
-	// 	new(big.Int).SetUint64(gasLimit))
-
-	// // check if maxFee >= fee
-	// if opts.maxFee != nil {
-	// 	if opts.maxFee.Cmp(suggestedFee) < 0 {
-	// 		return nil, cmn.ErrExceededFee
-	// 	}
-	// }
 
 	return &types.ConstructionMetadataResponse{
 		Metadata: meta,
 		SuggestedFee: []*types.Amount{
 			&types.Amount{
-				// Value: suggestedFee.String(), //TODO
+				Value: suggestedFee.String(),
 				Currency: &types.Currency{
 					Symbol:   ttypes.DenomTFuelWei,
 					Decimals: cmn.CoinDecimals,
@@ -457,13 +449,15 @@ func (s *constructionAPIService) ConstructionParse(
 
 	rawTx, err := hex.DecodeString(request.Transaction)
 	if err != nil {
-		return nil, cmn.ErrUnableToParseTx
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += err.Error()
+		return nil, terr
 	}
 
 	tx, err := ttypes.TxFromBytes(rawTx)
 	if err != nil {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "invalid transaction format: " + err.Error()
+		terr := cmn.ErrUnableToParseTx
+		terr.Message += err.Error()
 		return nil, terr
 	}
 
@@ -484,6 +478,7 @@ func (s *constructionAPIService) ConstructionParse(
 		tran := *tx.(*ttypes.SendTx)
 		sender = tran.Inputs[0].Address.String()
 		meta, ops = cmn.ParseSendTx(tran, nil, cmn.SendTx)
+
 	case *ttypes.ReserveFundTx:
 		tran := *tx.(*ttypes.ReserveFundTx)
 		sender = tran.Source.Address.String()
@@ -533,6 +528,7 @@ func (s *constructionAPIService) ConstructionParse(
 			},
 		}
 	}
+
 	return resp, nil
 }
 
@@ -552,6 +548,9 @@ func (s *constructionAPIService) ConstructionPayloads(
 		return nil, terr
 	}
 
+	// raw := tx.SignBytes(cmn.GetChainId())
+	// unsignedTxJSON, err := json.Marshal(&tx)
+
 	raw, err := ttypes.TxToBytes(tx)
 	if err != nil {
 		terr := cmn.ErrServiceInternal
@@ -567,7 +566,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 				AccountIdentifier: &types.AccountIdentifier{
 					Address: request.Operations[0].Account.Address,
 				},
-				Bytes:         raw[:],
+				Bytes:         raw,
 				SignatureType: SignatureType,
 			},
 		},
@@ -586,65 +585,37 @@ func (s *constructionAPIService) ConstructionPreprocess(
 	options := make(map[string]interface{})
 	options["sender"] = request.Operations[0].Account.Address
 
-	// if request.Metadata["type"] != nil {	// tx type
-	// 	switch request.Metadata["type"].(string) {
-	// 	case cmn.CoinbaseTx.String():
-	// 	case cmn.SlashTx.String():
-	// 	case cmn.SendTx.String():
-	// 	case cmn.ReserveFundTx.String():
-	// 	case cmn.ReleaseFundTx.String():
-	// 	case cmn.ServicePaymentTx.String():
-	// 	case cmn.SplitRuleTx.String():
-	// 	case cmn.SmartContractTx.String():
-	// 	case cmn.DepositStakeTx.String():
-	// 	case cmn.WithdrawStakeTx.String():
-	// 	case cmn.StakeRewardDistributionTx.String():
-	// 	default:
-	// 	}
-	// } else {								// tx op type
-	// 	switch request.Operations[0].Type {
-	// 	case cmn.CoinbaseTxProposer.String():
-	// 	case cmn.SlashTxProposer.String():
-	// 	case cmn.SendTxInput.String():
-	// 	case cmn.ReserveFundTxSource.String():
-	// 	case cmn.ReleaseFundTxSource.String():
-	// 	case cmn.ServicePaymentTxSource.String():
-	// 	case cmn.SplitRuleTxInitiator.String():
-	// 	case cmn.SmartContractTxFrom.String():
-	// 	case cmn.DepositStakeTxSource.String():
-	// 	case cmn.WithdrawStakeTxSource.String():
-	// 	case cmn.StakeRewardDistributionTxHolder.String():
-	// 	default:
-	// 	}
-	// }
-
 	if request.Metadata["type"] != nil {
 		options["type"] = request.Metadata["type"]
 	} else {
 		switch request.Operations[0].Type {
 		case cmn.CoinbaseTxProposer.String():
-			options["type"] = cmn.CoinbaseTx.String()
+			options["type"] = cmn.CoinbaseTx //.String()
 		case cmn.SlashTxProposer.String():
-			options["type"] = cmn.SlashTx.String()
+			options["type"] = cmn.SlashTx //.String()
 		case cmn.SendTxInput.String():
-			options["type"] = cmn.SendTx.String()
+			options["type"] = cmn.SendTx //.String()
+			options["fee_multiplier"] = len(request.Operations)
 		case cmn.ReserveFundTxSource.String():
-			options["type"] = cmn.ReserveFundTx.String()
+			options["type"] = cmn.ReserveFundTx //.String()
 		case cmn.ReleaseFundTxSource.String():
-			options["type"] = cmn.ReleaseFundTx.String()
+			options["type"] = cmn.ReleaseFundTx //.String()
 		case cmn.ServicePaymentTxSource.String():
-			options["type"] = cmn.ServicePaymentTx.String()
+			options["type"] = cmn.ServicePaymentTx //.String()
 		case cmn.SplitRuleTxInitiator.String():
-			options["type"] = cmn.SplitRuleTx.String()
+			options["type"] = cmn.SplitRuleTx //.String()
 		case cmn.SmartContractTxFrom.String():
-			options["type"] = cmn.SmartContractTx.String()
+			options["type"] = cmn.SmartContractTx //.String()
 		case cmn.DepositStakeTxSource.String():
-			options["type"] = cmn.DepositStakeTx.String()
+			options["type"] = cmn.DepositStakeTx //.String()
 		case cmn.WithdrawStakeTxSource.String():
-			options["type"] = cmn.WithdrawStakeTx.String()
+			options["type"] = cmn.WithdrawStakeTx //.String()
 		case cmn.StakeRewardDistributionTxHolder.String():
-			options["type"] = cmn.StakeRewardDistributionTx.String()
+			options["type"] = cmn.StakeRewardDistributionTx //.String()
 		default:
+			terr := cmn.ErrUnableToParseTx
+			terr.Message += "unsupported tx type"
+			return nil, terr
 		}
 	}
 
@@ -700,20 +671,6 @@ func (s *constructionAPIService) ConstructionPreprocess(
 		options["split_basis_point"] = request.Metadata["split_basis_point"]
 	}
 
-	// check and set max fee and fee multiplier
-	if len(request.MaxFee) != 0 {
-		maxFee := request.MaxFee[0]
-		if maxFee.Currency.Symbol != ttypes.DenomTFuelWei || maxFee.Currency.Decimals != cmn.CoinDecimals {
-			terr := cmn.ErrConstructionCheck
-			terr.Message += "invalid fee currency"
-			return nil, terr
-		}
-		options["max_fee"] = maxFee.Value
-	}
-	if request.SuggestedFeeMultiplier != nil {
-		options["fee_multiplier"] = *request.SuggestedFeeMultiplier
-	}
-
 	return &types.ConstructionPreprocessResponse{
 		Options: options,
 	}, nil
@@ -735,7 +692,10 @@ func (s *constructionAPIService) ConstructionSubmit(
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		broadcastResult := BroadcastRawTransactionAsyncResult{}
-		json.Unmarshal(jsonBytes, &broadcastResult)
+		err := json.Unmarshal(jsonBytes, &broadcastResult)
+		if err != nil {
+			return nil, err
+		}
 
 		resp := types.TransactionIdentifierResponse{}
 		resp.TransactionIdentifier = &types.TransactionIdentifier{
@@ -808,4 +768,15 @@ func keccak256(data ...[]byte) []byte {
 		d.Write(b)
 	}
 	return d.Sum(nil)
+}
+
+func printStruct(val interface{}) {
+	str, err := json.Marshal(
+		val,
+	)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	logger.Errorf(string(str))
 }

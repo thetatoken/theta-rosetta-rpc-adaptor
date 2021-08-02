@@ -64,7 +64,7 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 	cmn.SetChainId(status.ChainID)
 
 	asserter, err := asserter.NewServer(
-		cmn.TxTypes(),
+		cmn.TxOpTypes(),
 		true,
 		[]*types.NetworkIdentifier{
 			&types.NetworkIdentifier{
