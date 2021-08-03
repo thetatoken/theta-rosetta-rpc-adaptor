@@ -678,19 +678,22 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 
 func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.Tx, err error) {
 	var ok bool
-	var typ interface{}
+	var typ, seq interface{}
 	if typ, ok = meta["type"]; !ok {
 		return nil, fmt.Errorf("missing tx type")
 	}
+	if seq, ok = meta["sequence"]; !ok {
+		return nil, fmt.Errorf("missing tx sequence")
+	}
 
 	txType := TxType(typ.(float64))
+	sequence := uint64(seq.(float64))
+	fee := ttypes.Coins{TFuelWei: big.NewInt(int64(meta["fee"].(float64)))}
 
 	switch txType {
 	case CoinbaseTx:
 		inputAmount := new(big.Int)
 		inputAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		outputs := []ttypes.TxOutput{}
 		for i := 1; i < len(ops); i++ {
@@ -706,27 +709,22 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 
 		tx = &ttypes.CoinbaseTx{
 			Proposer: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: inputAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: inputAmount},
+				Sequence: sequence,
 			},
 			Outputs: outputs,
-			// BlockHeight: meta["block_height"].(uint64),
 		}
 
 	case SlashTx:
 		inputAmount := new(big.Int)
 		inputAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.SlashTx{
 			Proposer: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: inputAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: inputAmount},
+				Sequence: sequence,
 			},
 		}
 	case SendTx:
@@ -745,8 +743,8 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 
 		for addr, ops := range inputMap {
 			input := ttypes.TxInput{
-				Address: cmn.HexToAddress(addr),
-				// Coins:   ttypes.Coins{},
+				Address:  cmn.HexToAddress(addr),
+				Sequence: sequence,
 			}
 			for _, op := range ops {
 				coin := new(big.Int)
@@ -762,7 +760,6 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		for addr, ops := range outputMap {
 			output := ttypes.TxOutput{
 				Address: cmn.HexToAddress(addr),
-				// Coins:   ttypes.Coins{},
 			}
 			for _, op := range ops {
 				coin := new(big.Int)
@@ -777,7 +774,7 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		}
 
 		tx = &ttypes.SendTx{
-			Fee:     ttypes.Coins{TFuelWei: big.NewInt(int64(meta["fee"].(float64)))},
+			Fee:     fee,
 			Inputs:  inputs,
 			Outputs: outputs,
 		}
@@ -785,61 +782,52 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 	case ReserveFundTx:
 		inputAmount := new(big.Int)
 		inputAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.ReserveFundTx{
-			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Fee: fee,
 			Source: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: inputAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: inputAmount},
+				Sequence: sequence,
 			},
 			Collateral:  meta["collateral"].(ttypes.Coins),
 			ResourceIDs: meta["resource_ids"].([]string),
-			Duration:    meta["duration"].(uint64),
+			Duration:    uint64(meta["duration"].(float64)),
 		}
 
 	case ReleaseFundTx:
 		inputAmount := new(big.Int)
 		inputAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.ReleaseFundTx{
-			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Fee: fee,
 			Source: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: inputAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: inputAmount},
+				Sequence: sequence,
 			},
-			ReserveSequence: meta["reserve_sequence"].(uint64),
+			ReserveSequence: uint64(meta["reserve_sequence"].(float64)),
 		}
 
 	case ServicePaymentTx:
 		sourceAmount := new(big.Int)
 		sourceAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 		targetAmount := new(big.Int)
 		targetAmount.SetString(ops[1].Amount.Value, 10)
 
 		tx = &ttypes.ServicePaymentTx{
-			Fee: ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Fee: fee,
 			Source: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: sourceAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: sourceAmount},
+				Sequence: sequence,
 			},
 			Target: ttypes.TxInput{
 				Address: cmn.HexToAddress(ops[1].Account.Address),
 				Coins:   ttypes.Coins{TFuelWei: targetAmount},
 			},
-			PaymentSequence: meta["payment_sequence"].(uint64),
-			ReserveSequence: meta["reserve_sequence"].(uint64),
+			PaymentSequence: uint64(meta["payment_sequence"].(float64)),
+			ReserveSequence: uint64(meta["reserve_sequence"].(float64)),
 			ResourceID:      meta["resource_id"].(string),
 		}
 
@@ -850,21 +838,19 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.SplitRuleTx{
-			Fee:        ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
+			Fee:        fee,
 			ResourceID: meta["resource_id"].(string),
 			Initiator: ttypes.TxInput{
 				Address:   cmn.HexToAddress(ops[0].Account.Address),
 				Coins:     ttypes.Coins{TFuelWei: sourceAmount},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
+				Sequence:  sequence,
 				Signature: sig,
 			},
 			Splits:   meta["splits"].([]ttypes.Split),
-			Duration: meta["duration"].(uint64),
+			Duration: uint64(meta["duration"].(float64)),
 		}
 
 	case SmartContractTx:
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 		fromTFuelWei := new(big.Int)
 		fromTFuelWei.SetString(ops[0].Amount.Value, 10)
 		toTFuelWei := new(big.Int)
@@ -872,17 +858,16 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 
 		tx = &ttypes.SmartContractTx{
 			From: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{ThetaWei: big.NewInt(0), TFuelWei: fromTFuelWei},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{ThetaWei: big.NewInt(0), TFuelWei: fromTFuelWei},
+				Sequence: sequence,
 			},
 			To: ttypes.TxOutput{
 				Address: cmn.HexToAddress(ops[1].Account.Address),
 				Coins:   ttypes.Coins{ThetaWei: big.NewInt(0), TFuelWei: toTFuelWei},
 			},
-			GasLimit: meta["gas_limit"].(uint64),
-			GasPrice: new(big.Int).Set(meta["gas_price"].(*big.Int)),
+			GasLimit: uint64(meta["gas_limit"].(float64)),
+			GasPrice: big.NewInt(int64(meta["gas_price"].(float64))), //new(big.Int).Set(meta["gas_price"].(*big.Int)),
 			Data:     meta["data"].([]byte),
 		}
 
@@ -895,17 +880,14 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		holderThetaWei.SetString(ops[2].Amount.Value, 10)
 		holderTFuelWei := new(big.Int)
 		holderTFuelWei.SetString(ops[3].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		depositStakeTx := &ttypes.DepositStakeTxV2{
-			Fee:     ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
-			Purpose: meta["purpose"].(uint8),
+			Fee:     fee,
+			Purpose: uint8(meta["purpose"].(float64)),
 			Source: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
+				Sequence: sequence,
 			},
 			Holder: ttypes.TxOutput{
 				Address: cmn.HexToAddress(ops[1].Account.Address),
@@ -933,17 +915,14 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		holderThetaWei.SetString(ops[2].Amount.Value, 10)
 		holderTFuelWei := new(big.Int)
 		holderTFuelWei.SetString(ops[3].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.WithdrawStakeTx{
-			Fee:     ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
-			Purpose: meta["purpose"].(uint8),
+			Fee:     fee,
+			Purpose: uint8(meta["purpose"].(float64)),
 			Source: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{ThetaWei: sourceThetaWei, TFuelWei: sourceTFuelWei},
+				Sequence: sequence,
 			},
 			Holder: ttypes.TxOutput{
 				Address: cmn.HexToAddress(ops[1].Account.Address),
@@ -960,17 +939,14 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 		beneficiaryThetaWei.SetString(ops[2].Amount.Value, 10)
 		beneficiaryTFuelWei := new(big.Int)
 		beneficiaryTFuelWei.SetString(ops[3].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.StakeRewardDistributionTx{
-			Fee:             ttypes.Coins{TFuelWei: big.NewInt(meta["fee"].(int64))},
-			SplitBasisPoint: meta["split_basis_point"].(uint),
+			Fee:             fee,
+			SplitBasisPoint: uint(meta["split_basis_point"].(float64)),
 			Holder: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{ThetaWei: holderThetaWei, TFuelWei: holderTFuelWei},
-				Sequence:  ops[0].Metadata["sequence"].(uint64),
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{ThetaWei: holderThetaWei, TFuelWei: holderTFuelWei},
+				Sequence: sequence,
 			},
 			Beneficiary: ttypes.TxOutput{
 				Address: cmn.HexToAddress(ops[1].Account.Address),

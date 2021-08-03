@@ -77,36 +77,6 @@ func (s *constructionAPIService) ConstructionDerive(
 	}, nil
 }
 
-// ConstructionHash implements the /construction/hash endpoint.
-func (s *constructionAPIService) ConstructionHash(
-	ctx context.Context,
-	request *types.ConstructionHashRequest,
-) (*types.TransactionIdentifierResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
-
-	rawTx, err := hex.DecodeString(request.SignedTransaction)
-	if err != nil {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "invalid signed transaction format: " + err.Error()
-		return nil, terr
-	}
-	tx, err := ttypes.TxFromBytes(rawTx)
-	if err != nil {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "invalid signed transaction format: " + err.Error()
-		return nil, terr
-	}
-
-	hash := ttypes.TxID(cmn.GetChainId(), tx)
-	return &types.TransactionIdentifierResponse{
-		TransactionIdentifier: &types.TransactionIdentifier{
-			Hash: hash.String(),
-		},
-	}, nil
-}
-
 // ConstructionPreprocess implements the /construction/preprocess endpoint.
 func (s *constructionAPIService) ConstructionPreprocess(
 	ctx context.Context,
@@ -222,7 +192,6 @@ func (s *constructionAPIService) ConstructionMetadata(
 	meta := make(map[string]interface{})
 
 	var ok bool
-	//////////////////////////////////////////////
 	var sender interface{}
 	if sender, ok = request.Options["sender"]; !ok {
 		terr := cmn.ErrInvalidInputParam
@@ -248,8 +217,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 		return nil, cmn.ErrUnableToGetAccount
 	}
 
-	meta["sequence"] = seq.(uint64)
-	//////////////////////////////////////////////
+	meta["sequence"] = seq.(uint64) + 1
 
 	var txType interface{}
 
@@ -654,6 +622,38 @@ func (s *constructionAPIService) ConstructionCombine(
 	}, nil
 }
 
+// ConstructionHash implements the /construction/hash endpoint.
+func (s *constructionAPIService) ConstructionHash(
+	ctx context.Context,
+	request *types.ConstructionHashRequest,
+) (*types.TransactionIdentifierResponse, *types.Error) {
+	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
+	// 	return nil, terr
+	// }
+
+	rawTx, err := hex.DecodeString(request.SignedTransaction)
+	if err != nil {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += "invalid signed transaction format: " + err.Error()
+		return nil, terr
+	}
+	tx, err := ttypes.TxFromBytes(rawTx)
+	if err != nil {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += "invalid signed transaction format: " + err.Error()
+		return nil, terr
+	}
+
+	logger.Errorf("--- %v", tx)
+	hash := ttypes.TxID(cmn.GetChainId(), tx)
+	logger.Errorf("1 ============== tx hash: %v", hash.String()) //temp
+	return &types.TransactionIdentifierResponse{
+		TransactionIdentifier: &types.TransactionIdentifier{
+			Hash: hash.String(),
+		},
+	}, nil
+}
+
 // ConstructionSubmit implements the /construction/submit endpoint.
 func (s *constructionAPIService) ConstructionSubmit(
 	ctx context.Context,
@@ -674,7 +674,7 @@ func (s *constructionAPIService) ConstructionSubmit(
 		if err != nil {
 			return nil, err
 		}
-
+		logger.Errorf("2 ============== tx hash: %v", broadcastResult.TxHash) //temp
 		resp := types.TransactionIdentifierResponse{}
 		resp.TransactionIdentifier = &types.TransactionIdentifier{
 			Hash: broadcastResult.TxHash,
