@@ -222,6 +222,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 	meta := make(map[string]interface{})
 
 	var ok bool
+	//////////////////////////////////////////////
 	var sender interface{}
 	if sender, ok = request.Options["sender"]; !ok {
 		terr := cmn.ErrInvalidInputParam
@@ -248,6 +249,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 	}
 
 	meta["sequence"] = seq.(uint64)
+	//////////////////////////////////////////////
 
 	var txType interface{}
 
@@ -283,9 +285,8 @@ func (s *constructionAPIService) ConstructionMetadata(
 		default:
 			suggestedFee = ttypes.GetMinimumTransactionFeeTFuelWei(height)
 		}
-
-		meta["fee"] = suggestedFee
 	}
+	meta["fee"] = suggestedFee
 
 	switch cmn.TxType(txType.(float64)) {
 	case cmn.CoinbaseTx:
@@ -445,6 +446,8 @@ func (s *constructionAPIService) ConstructionPayloads(
 	}
 	unsignedTx := hex.EncodeToString(raw)
 
+	signBytes := tx.SignBytes(cmn.GetChainId())
+
 	return &types.ConstructionPayloadsResponse{
 		UnsignedTransaction: unsignedTx,
 		Payloads: []*types.SigningPayload{
@@ -452,7 +455,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 				AccountIdentifier: &types.AccountIdentifier{
 					Address: request.Operations[0].Account.Address,
 				},
-				Bytes:         raw,
+				Bytes:         crypto.Keccak256Hash(signBytes).Bytes(),
 				SignatureType: SignatureType,
 			},
 		},
@@ -467,12 +470,6 @@ func (s *constructionAPIService) ConstructionParse(
 	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
 	// 	return nil, terr
 	// }
-
-	if request.Signed {
-		//TODO
-	} else {
-		//TODO
-	}
 
 	rawTx, err := hex.DecodeString(request.Transaction)
 	if err != nil {
@@ -505,7 +502,6 @@ func (s *constructionAPIService) ConstructionParse(
 		tran := *tx.(*ttypes.SendTx)
 		sender = tran.Inputs[0].Address.String()
 		meta, ops = cmn.ParseSendTx(tran, nil, cmn.SendTx)
-
 	case *ttypes.ReserveFundTx:
 		tran := *tx.(*ttypes.ReserveFundTx)
 		sender = tran.Source.Address.String()
@@ -582,74 +578,67 @@ func (s *constructionAPIService) ConstructionCombine(
 		return nil, terr
 	}
 
-	signBytes := tx.SignBytes(cmn.GetChainId())
-
 	if len(request.Signatures) != 1 {
 		terr := cmn.ErrInvalidInputParam
 		terr.Message += "need exact 1 signature"
 		return nil, terr
 	}
-	sig := &crypto.Signature{}
-	sig.UnmarshalJSON(request.Signatures[0].Bytes)
+
+	sig, err := crypto.SignatureFromBytes(request.Signatures[0].Bytes)
+	if err != nil {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += fmt.Sprintf("Cannot convert signature from payload bytes")
+		return nil, terr
+	}
 
 	signer := common.HexToAddress(request.Signatures[0].SigningPayload.AccountIdentifier.Address)
-	var in ttypes.TxInput
+
+	// Check signatures
+	signBytes := tx.SignBytes(cmn.GetChainId())
+
+	if !sig.Verify(signBytes, signer) {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += fmt.Sprintf("Signature verification failed, SignBytes: %v", hex.EncodeToString(signBytes))
+		return nil, terr
+	}
 
 	switch tx.(type) {
 	case *ttypes.CoinbaseTx:
 		tran := *tx.(*ttypes.CoinbaseTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Proposer
 	case *ttypes.SlashTx:
 		tran := *tx.(*ttypes.SlashTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Proposer
 	case *ttypes.SendTx:
 		tran := *tx.(*ttypes.SendTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Inputs[0]
 	case *ttypes.ReserveFundTx:
 		tran := *tx.(*ttypes.ReserveFundTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Source
 	case *ttypes.ReleaseFundTx:
 		tran := *tx.(*ttypes.ReleaseFundTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Source
 	case *ttypes.ServicePaymentTx:
-		tran := *tx.(*ttypes.ServicePaymentTx)
+		// tran := *tx.(*ttypes.ServicePaymentTx)
 		// tran.SetSignature(signer, sig)
-		in = tran.Source
 	case *ttypes.SplitRuleTx:
 		tran := *tx.(*ttypes.SplitRuleTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Initiator
 	case *ttypes.SmartContractTx:
 		tran := *tx.(*ttypes.SmartContractTx)
 		tran.SetSignature(signer, sig)
-		in = tran.From
 	case *ttypes.DepositStakeTx, *ttypes.DepositStakeTxV2:
 		tran := *tx.(*ttypes.DepositStakeTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Source
 	case *ttypes.WithdrawStakeTx:
 		tran := *tx.(*ttypes.WithdrawStakeTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Source
 	case *ttypes.StakeRewardDistributionTx:
 		tran := *tx.(*ttypes.StakeRewardDistributionTx)
 		tran.SetSignature(signer, sig)
-		in = tran.Holder
 	default:
 		terr := cmn.ErrUnableToParseTx
 		terr.Message += "unsupported tx type"
-		return nil, terr
-	}
-
-	// Check signatures
-	if !in.Signature.Verify(signBytes, signer) {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += fmt.Sprintf("Signature verification failed, SignBytes: %v", hex.EncodeToString(signBytes))
 		return nil, terr
 	}
 
@@ -704,26 +693,6 @@ func (s *constructionAPIService) ConstructionSubmit(
 	return &ret, nil
 }
 
-func validateInputAdvanced(acc *ttypes.Account, signBytes []byte, in ttypes.TxInput) error {
-	// Check sequence/coins
-	seq, balance := acc.Sequence, acc.Balance
-	if seq+1 != in.Sequence {
-		return fmt.Errorf("ValidateInputAdvanced: Got %v, expected %v. (acc.seq=%v)", in.Sequence, seq+1, acc.Sequence)
-	}
-
-	// Check amount
-	if !balance.IsGTE(in.Coins) {
-		return fmt.Errorf("Insufficient fund: balance is %v, tried to send %v", balance, in.Coins)
-	}
-
-	// Check signatures
-	if !in.Signature.Verify(signBytes, acc.Address) {
-		return fmt.Errorf("Signature verification failed, SignBytes: %v", hex.EncodeToString(signBytes))
-	}
-
-	return nil
-}
-
 // decompressPubkey parses a public key in the 33-byte compressed format.
 func decompressPubkey(pubkey []byte) (*ecdsa.PublicKey, error) {
 	x, y := secp256k1.DecompressPubkey(pubkey)
@@ -757,15 +726,4 @@ func keccak256(data ...[]byte) []byte {
 		d.Write(b)
 	}
 	return d.Sum(nil)
-}
-
-func printStruct(val interface{}) {
-	str, err := json.Marshal(
-		val,
-	)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	logger.Errorf(string(str))
 }
