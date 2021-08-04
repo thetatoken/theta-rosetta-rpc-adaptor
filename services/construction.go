@@ -637,16 +637,9 @@ func (s *constructionAPIService) ConstructionHash(
 		terr.Message += "invalid signed transaction format: " + err.Error()
 		return nil, terr
 	}
-	tx, err := ttypes.TxFromBytes(rawTx)
-	if err != nil {
-		terr := cmn.ErrInvalidInputParam
-		terr.Message += "invalid signed transaction format: " + err.Error()
-		return nil, terr
-	}
 
-	logger.Errorf("--- %v", tx)
-	hash := ttypes.TxID(cmn.GetChainId(), tx)
-	logger.Errorf("1 ============== tx hash: %v", hash.String()) //temp
+	hash := crypto.Keccak256Hash(rawTx)
+
 	return &types.TransactionIdentifierResponse{
 		TransactionIdentifier: &types.TransactionIdentifier{
 			Hash: hash.String(),
@@ -674,7 +667,7 @@ func (s *constructionAPIService) ConstructionSubmit(
 		if err != nil {
 			return nil, err
 		}
-		logger.Errorf("2 ============== tx hash: %v", broadcastResult.TxHash) //temp
+
 		resp := types.TransactionIdentifierResponse{}
 		resp.TransactionIdentifier = &types.TransactionIdentifier{
 			Hash: broadcastResult.TxHash,
