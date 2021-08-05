@@ -28,11 +28,11 @@ COPY ./run.sh $GOPATH/bin
 
 ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:$PATH
 
-RUN mkdir -p /app \
-  && chown -R nobody:nogroup /app \
-  && mkdir -p /data \
-  && chown -R nobody:nogroup /data
-RUN chmod -R 755 /app/*
+# RUN mkdir -p /app \
+#   && chown -R nobody:nogroup /app \
+#   && mkdir -p /data \
+#   && chown -R nobody:nogroup /data
+# RUN chmod -R 755 /app/*
 
 CMD [ "run.sh" ]
 EXPOSE 8080
