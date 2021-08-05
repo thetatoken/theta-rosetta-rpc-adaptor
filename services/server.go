@@ -40,17 +40,6 @@ func StartServers() error {
 }
 
 func StopServers() error {
-	// if httpListener != nil {
-	// 	if err := httpListener.Close(); err != nil {
-	// 		return err
-	// 	}
-	// 	httpListener = nil
-	// 	logger.Infof("HTTP endpoint closed")
-	// }
-	// if httpHandler != nil {
-	// 	httpHandler.Stop()
-	// 	httpHandler = nil
-	// }
 	return nil
 }
 

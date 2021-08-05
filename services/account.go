@@ -44,10 +44,9 @@ func (s *accountAPIService) AccountBalance(
 	ctx context.Context,
 	request *types.AccountBalanceRequest,
 ) (*types.AccountBalanceResponse, *types.Error) {
-	// terr := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	var height common.JSONUint64
 	if request.BlockIdentifier == nil {
@@ -60,7 +59,7 @@ func (s *accountAPIService) AccountBalance(
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
-		Height:  height, //TODO
+		Height:  height,
 	})
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
@@ -129,11 +128,14 @@ func (s *accountAPIService) AccountCoins(
 	ctx context.Context,
 	request *types.AccountCoinsRequest,
 ) (*types.AccountCoinsResponse, *types.Error) {
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
+
 	status, err := cmn.GetStatus(s.client)
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
-		// Height:  status.LatestFinalizedBlockHeight,
 	})
 
 	parse := func(jsonBytes []byte) (interface{}, error) {

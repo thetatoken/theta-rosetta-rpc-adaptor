@@ -52,9 +52,9 @@ func (s *constructionAPIService) ConstructionDerive(
 	ctx context.Context,
 	request *types.ConstructionDeriveRequest,
 ) (*types.ConstructionDeriveResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
+	if terr := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); terr != nil {
+		return nil, terr
+	}
 
 	if len(request.PublicKey.Bytes) == 0 || request.PublicKey.CurveType != CurveType {
 		terr := cmn.ErrInvalidInputParam
@@ -82,9 +82,9 @@ func (s *constructionAPIService) ConstructionPreprocess(
 	ctx context.Context,
 	request *types.ConstructionPreprocessRequest,
 ) (*types.ConstructionPreprocessResponse, *types.Error) {
-	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
-	// 	return nil, err
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	options := make(map[string]interface{})
 	options["sender"] = request.Operations[0].Account.Address
@@ -99,7 +99,7 @@ func (s *constructionAPIService) ConstructionPreprocess(
 			options["type"] = cmn.SlashTx
 		case cmn.SendTxInput.String():
 			options["type"] = cmn.SendTx
-			options["fee_multiplier"] = len(request.Operations)
+			options["fee_multiplier"] = len(request.Operations) //TODO: what if len(inputs) != len(outputs) ?
 		case cmn.ReserveFundTxSource.String():
 			options["type"] = cmn.ReserveFundTx
 		case cmn.ReleaseFundTxSource.String():
@@ -185,9 +185,9 @@ func (s *constructionAPIService) ConstructionMetadata(
 	ctx context.Context,
 	request *types.ConstructionMetadataRequest,
 ) (*types.ConstructionMetadataResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	meta := make(map[string]interface{})
 
@@ -229,16 +229,21 @@ func (s *constructionAPIService) ConstructionMetadata(
 
 	meta["type"] = txType
 
-	var height uint64
+	var status *cmn.GetStatusResult
 	var suggestedFee *big.Int
+
 	if fee, ok := meta["fee"]; ok {
 		suggestedFee = new(big.Int)
 		suggestedFee.SetUint64(fee.(uint64))
 	} else {
-		if height == 0 {
-			status, _ := cmn.GetStatus(s.client)
-			height = uint64(status.CurrentHeight)
+		status, err = cmn.GetStatus(s.client)
+		if err != nil {
+			terr := cmn.ErrInvalidInputParam
+			terr.Message += "can't get blockchain status"
+			return nil, terr
 		}
+		height := uint64(status.CurrentHeight)
+
 		switch cmn.TxType(txType.(float64)) {
 		case cmn.SendTx:
 			if feeMultiplier, ok := request.Options["fee_multiplier"]; ok {
@@ -274,9 +279,6 @@ func (s *constructionAPIService) ConstructionMetadata(
 		// }
 
 	case cmn.SendTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 
 	case cmn.ReserveFundTx:
 		if collateral, ok := request.Options["collateral"]; ok {
@@ -290,17 +292,11 @@ func (s *constructionAPIService) ConstructionMetadata(
 		}
 
 	case cmn.ReleaseFundTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if reserveSeq, ok := request.Options["reserve_seq"]; ok {
 			meta["reserve_seq"] = reserveSeq
 		}
 
 	case cmn.ServicePaymentTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if resourceId, ok := request.Options["resource_id"]; ok {
 			meta["resource_id"] = resourceId
 		}
@@ -312,9 +308,6 @@ func (s *constructionAPIService) ConstructionMetadata(
 		}
 
 	case cmn.SplitRuleTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if resourceId, ok := request.Options["resource_id"]; ok {
 			meta["resource_id"] = resourceId
 		}
@@ -329,17 +322,31 @@ func (s *constructionAPIService) ConstructionMetadata(
 		if gasLimit, ok := request.Options["gas_limit"]; ok {
 			meta["gas_limit"] = gasLimit
 		} else {
-			status, _ := cmn.GetStatus(s.client)
-			height = uint64(status.CurrentHeight)
+			if status == nil {
+				status, err = cmn.GetStatus(s.client)
+				if err != nil {
+					terr := cmn.ErrInvalidInputParam
+					terr.Message += "can't get blockchain status"
+					return nil, terr
+				}
+			}
+
+			height := uint64(status.CurrentHeight)
 			gasLimit = ttypes.GetMaxGasLimit(height).Uint64()
 		}
 		if gasPrice, ok := request.Options["gas_price"]; ok {
 			meta["gas_price"] = gasPrice
 		} else {
-			if height == 0 {
-				status, _ := cmn.GetStatus(s.client)
-				height = uint64(status.CurrentHeight)
+			if status == nil {
+				status, err = cmn.GetStatus(s.client)
+				if err != nil {
+					terr := cmn.ErrInvalidInputParam
+					terr.Message += "can't get blockchain status"
+					return nil, terr
+				}
 			}
+
+			height := uint64(status.CurrentHeight)
 			gasPrice = ttypes.GetMinimumGasPrice(height).Uint64()
 		}
 		if data, ok := request.Options["data"]; ok {
@@ -347,25 +354,16 @@ func (s *constructionAPIService) ConstructionMetadata(
 		}
 
 	case cmn.DepositStakeTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if purpose, ok := request.Options["purpose"]; ok {
 			meta["purpose"] = purpose
 		}
 
 	case cmn.WithdrawStakeTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if purpose, ok := request.Options["purpose"]; ok {
 			meta["purpose"] = purpose
 		}
 
 	case cmn.StakeRewardDistributionTx:
-		// if fee, ok := request.Options["fee"]; ok {
-		// 	meta["fee"] = fee
-		// }
 		if splitBasisPoint, ok := request.Options["split_basis_point"]; ok {
 			meta["split_basis_point"] = splitBasisPoint
 		}
@@ -395,9 +393,9 @@ func (s *constructionAPIService) ConstructionPayloads(
 	ctx context.Context,
 	request *types.ConstructionPayloadsRequest,
 ) (*types.ConstructionPayloadsResponse, *types.Error) {
-	// if err := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); err != nil {
-	// 	return nil, err
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	tx, err := cmn.AssembleTx(request.Operations, request.Metadata)
 	if err != nil {
@@ -413,7 +411,6 @@ func (s *constructionAPIService) ConstructionPayloads(
 		return nil, terr
 	}
 	unsignedTx := hex.EncodeToString(raw)
-
 	signBytes := tx.SignBytes(cmn.GetChainId())
 
 	return &types.ConstructionPayloadsResponse{
@@ -435,9 +432,9 @@ func (s *constructionAPIService) ConstructionParse(
 	ctx context.Context,
 	request *types.ConstructionParseRequest,
 ) (*types.ConstructionParseResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rawTx, err := hex.DecodeString(request.Transaction)
 	if err != nil {
@@ -528,9 +525,9 @@ func (s *constructionAPIService) ConstructionCombine(
 	ctx context.Context,
 	request *types.ConstructionCombineRequest,
 ) (*types.ConstructionCombineResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rawTx, err := hex.DecodeString(request.UnsignedTransaction)
 	if err != nil {
@@ -627,9 +624,9 @@ func (s *constructionAPIService) ConstructionHash(
 	ctx context.Context,
 	request *types.ConstructionHashRequest,
 ) (*types.TransactionIdentifierResponse, *types.Error) {
-	// if terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier); terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rawTx, err := hex.DecodeString(request.SignedTransaction)
 	if err != nil {
@@ -652,10 +649,9 @@ func (s *constructionAPIService) ConstructionSubmit(
 	ctx context.Context,
 	request *types.ConstructionSubmitRequest,
 ) (*types.TransactionIdentifierResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rpcRes, rpcErr := s.client.Call("theta.BroadcastRawTransactionAsync", BroadcastRawTransactionAsyncArgs{
 		TxBytes: request.SignedTransaction,

@@ -182,7 +182,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 
 	var i int64
 	for _, input := range sendTx.Inputs {
-		// sigBytes, _ := input.Signature.MarshalJSON()
+		sigBytes, _ := input.Signature.MarshalJSON()
 
 		thetaWei := "0"
 		if input.Coins.ThetaWei != nil {
@@ -193,7 +193,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			Type:                SendTxInput.String(),
 			Account:             &types.AccountIdentifier{Address: input.Address.String()},
 			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-			// Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
 		}
 		if status != nil {
 			inputOp.Status = status
@@ -213,7 +213,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			Type:                SendTxInput.String(),
 			Account:             &types.AccountIdentifier{Address: input.Address.String()},
 			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-			// Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
 		}
 		if status != nil {
 			inputOp.Status = status
@@ -834,20 +834,17 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 	case SplitRuleTx:
 		sourceAmount := new(big.Int)
 		sourceAmount.SetString(ops[0].Amount.Value, 10)
-		sig := &crypto.Signature{}
-		sig.UnmarshalJSON(ops[0].Metadata["signature"].([]byte))
 
 		tx = &ttypes.SplitRuleTx{
-			Fee:        fee,
-			ResourceID: meta["resource_id"].(string),
+			Fee: fee,
 			Initiator: ttypes.TxInput{
-				Address:   cmn.HexToAddress(ops[0].Account.Address),
-				Coins:     ttypes.Coins{TFuelWei: sourceAmount},
-				Sequence:  sequence,
-				Signature: sig,
+				Address:  cmn.HexToAddress(ops[0].Account.Address),
+				Coins:    ttypes.Coins{TFuelWei: sourceAmount},
+				Sequence: sequence,
 			},
-			Splits:   meta["splits"].([]ttypes.Split),
-			Duration: uint64(meta["duration"].(float64)),
+			ResourceID: meta["resource_id"].(string),
+			Splits:     meta["splits"].([]ttypes.Split),
+			Duration:   uint64(meta["duration"].(float64)),
 		}
 
 	case SmartContractTx:

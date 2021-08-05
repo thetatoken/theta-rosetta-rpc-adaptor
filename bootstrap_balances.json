@@ -1,0 +1,22 @@
+[
+    {
+        "account_identifier": {
+            "address": "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"
+        },
+        "currency": {
+            "symbol": "thetawei",
+            "decimals": 18
+        },
+        "value": "12500000000000000000000000"
+    },
+    {
+        "account_identifier": {
+            "address": "0x2E833968E5bB786Ae419c4d13189fB081Cc43bab"
+        },
+        "currency": {
+            "symbol": "tfuelwei",
+            "decimals": 18
+        },
+        "value": "312500000000000000000000000"
+    }
+]

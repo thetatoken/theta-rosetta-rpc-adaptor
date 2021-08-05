@@ -1,0 +1,26 @@
+{
+    "network": {
+        "blockchain": "theta",
+        "network": "privatenet"
+    },
+    "online_url": "http://localhost:8080",
+    "data_directory": "",
+    "http_timeout": 10,
+    "tip_delay": 300,
+    "construction": {
+        "stale_depth": 3,
+        "broadcast_limit": 5,
+        "constructor_dsl_file": "theta.ros",
+        "end_conditions": {
+            "create_account": 10,
+            "transfer": 20
+        }
+    },
+    "data": {
+        "historical_balance_enabled": true,
+        "reconciliation_disabled": true,
+        "inactive_discrepency_search_disabled": true,
+        "balance_tracking_disabled": true,
+        "bootstrap_balances": "bootstrap_balances.json"
+    }
+}

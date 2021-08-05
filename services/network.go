@@ -45,10 +45,9 @@ func (s *networkAPIService) NetworkStatus(
 	ctx context.Context,
 	request *types.NetworkRequest,
 ) (*types.NetworkStatusResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	status, err := cmn.GetStatus(s.client)
 	if err != nil {
@@ -93,10 +92,9 @@ func (s *networkAPIService) NetworkOptions(
 	ctx context.Context,
 	request *types.NetworkRequest,
 ) (*types.NetworkOptionsResponse, *types.Error) {
-	// 	terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// 	if terr != nil {
-	// 		return nil, terr
-	// 	}
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	return &types.NetworkOptionsResponse{
 		Version: &types.Version{

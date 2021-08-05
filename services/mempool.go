@@ -34,10 +34,9 @@ func (s *memPoolAPIService) Mempool(
 	ctx context.Context,
 	request *types.NetworkRequest,
 ) (*types.MempoolResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rpcRes, rpcErr := s.client.Call("theta.GetPendingTransactions", GetPendingTransactionsArgs{})
 
@@ -71,10 +70,9 @@ func (s *memPoolAPIService) MempoolTransaction(
 	ctx context.Context,
 	request *types.MempoolTransactionRequest,
 ) (*types.MempoolTransactionResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rpcRes, rpcErr := s.client.Call("theta.GetTransaction", GetTransactionArgs{
 		Hash: request.TransactionIdentifier.Hash,

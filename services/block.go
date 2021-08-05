@@ -78,10 +78,9 @@ func (s *blockAPIService) Block(
 	ctx context.Context,
 	request *types.BlockRequest,
 ) (*types.BlockResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	var rpcRes *jrpc.RPCResponse
 	var rpcErr error
@@ -164,10 +163,9 @@ func (s *blockAPIService) BlockTransaction(
 	ctx context.Context,
 	request *types.BlockTransactionRequest,
 ) (*types.BlockTransactionResponse, *types.Error) {
-	// terr := ValidateNetworkIdentifier(ctx, s.client, request.NetworkIdentifier)
-	// if terr != nil {
-	// 	return nil, terr
-	// }
+	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
+		return nil, err
+	}
 
 	rpcRes, rpcErr := s.client.Call("theta.GetTransaction", GetTransactionArgs{
 		Hash: request.TransactionIdentifier.Hash,
