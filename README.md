@@ -81,7 +81,7 @@ Indexer APIs specifed in https://www.rosetta-api.org/docs/indexers.html
 ## How to test
 Install the latest rosetta-cli from https://github.com/coinbase/rosetta-cli.
 
-## Testing Data API
+### Testing Data API
 
 ```
 rosetta-cli check:data --configuration-file=cli-test-config.json
