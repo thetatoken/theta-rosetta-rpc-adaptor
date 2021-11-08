@@ -68,9 +68,9 @@ docker start <container name>
 
 ### Rosetta restful APIs
 
-####All Data APIs specified in https://www.rosetta-api.org/docs/data_api_introduction.html
+#### All Data APIs specified in https://www.rosetta-api.org/docs/data_api_introduction.html
 
-####All supported Construction APIs specified in https://www.rosetta-api.org/docs/ConstructionApi.html
+#### All supported Construction APIs specified in https://www.rosetta-api.org/docs/ConstructionApi.html
 
 
 ### Unsupported APIs
