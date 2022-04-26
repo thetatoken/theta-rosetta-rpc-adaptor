@@ -18,7 +18,7 @@
 * Idempotent access to all transaction traces and receipts
 
 ## Pre-requisite
-To run `Theta-rosetta`, you must install Docker. Please refer to [Docker offical documentation](https://docs.docker.com/get-docker/) on installation instruction.
+To run `Theta-rosetta`, you must install Docker. Please refer to [Docker official documentation](https://docs.docker.com/get-docker/) on installation instruction.
 
 ## Usage
 As specified in the [Rosetta API Principles](https://www.rosetta-api.org/docs/automated_deployment.html),
