@@ -71,8 +71,8 @@ func ValidateNetworkIdentifier(ctx context.Context, ni *types.NetworkIdentifier)
 		if !strings.EqualFold(ni.Network, GetChainId()) {
 			return ErrInvalidNetwork
 		}
-	} else {
-		return ErrMissingNID
+		// } else {
+		// 	return ErrMissingNID
 	}
 	return nil
 }
