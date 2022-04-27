@@ -48,18 +48,23 @@ func (s *accountAPIService) AccountBalance(
 		return nil, err
 	}
 
-	var height common.JSONUint64
+	var blockHeight common.JSONUint64
+	var blockHash string
 	if request.BlockIdentifier == nil {
-		height = 0
+		status, err := cmn.GetStatus(s.client)
+		if err != nil {
+			return nil, cmn.ErrUnableToGetAccount
+		}
+		blockHeight = status.LatestFinalizedBlockHeight
+		blockHash = status.LatestFinalizedBlockHash.String()
 	} else {
-		height = common.JSONUint64(*request.BlockIdentifier.Index)
+		blockHeight = common.JSONUint64(*request.BlockIdentifier.Index)
+		blockHash = *request.BlockIdentifier.Hash
 	}
-
-	status, err := cmn.GetStatus(s.client)
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
-		Height:  height,
+		Height:  blockHeight,
 	})
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
@@ -70,17 +75,7 @@ func (s *accountAPIService) AccountBalance(
 		}
 
 		resp := types.AccountBalanceResponse{}
-		if request.BlockIdentifier != nil {
-			resp.BlockIdentifier = &types.BlockIdentifier{}
-			if request.BlockIdentifier.Index != nil {
-				resp.BlockIdentifier.Index = int64(*request.BlockIdentifier.Index)
-			}
-			if request.BlockIdentifier.Hash != nil {
-				resp.BlockIdentifier.Hash = *request.BlockIdentifier.Hash
-			}
-		} else {
-			resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
-		}
+		resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(blockHeight), Hash: blockHash}
 		resp.Metadata = map[string]interface{}{"sequence_number": account.Sequence}
 
 		var needTheta, needTFuel bool
