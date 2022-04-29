@@ -7,9 +7,16 @@ export THETA_PW=${THETA_PW:-qwertyuiop}
 # echo "consensus:
 #   minProposalWait: 2" >> ../privatenet/node/config.yaml
 
-# /go/bin/theta start --config=../privatenet/node --password="qwertyuiop" &
-/app/theta start --config=../privatenet/node --password=$THETA_PW &
+if [ $THETA_NETWORK == "mainnet" ]
+then
+    /app/theta start --config=../mainnet/walletnode --password=$THETA_PW &
+elif [ $THETA_NETWORK == "testnet" ]
+then
+    /app/theta start --config=../testnet/walletnode --password=$THETA_PW &
+else
+    /app/theta start --config=../privatenet/node --password=$THETA_PW &
+fi
 
-sleep 30
+sleep 60
 
 /app/theta-rosetta-rpc-adaptor start --mode=$THETA_MODE
