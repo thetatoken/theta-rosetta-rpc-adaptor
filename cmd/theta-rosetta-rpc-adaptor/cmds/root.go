@@ -14,6 +14,7 @@ import (
 )
 
 var cfgPath string
+var mode string
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -34,6 +35,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(&cfgPath, "config", getDefaultConfigPath(), fmt.Sprintf("config path (default is %s)", getDefaultConfigPath()))
+	RootCmd.PersistentFlags().StringVar(&mode, "mode", "", "Rosetta mode (online/offline")
 	viper.BindPFlag(cmn.CfgRosettaMode, RootCmd.PersistentFlags().Lookup("mode"))
 }
 
