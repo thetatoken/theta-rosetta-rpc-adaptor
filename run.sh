@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export THETA_NETWORK=${THETA_NETWORK:-testnet}
-export THETA_MODE=${THETA_MODE:-online}
-export THETA_PW=${THETA_PW:-qwertyuiop}
+# export THETA_NETWORK=${THETA_NETWORK:-testnet}
+# export THETA_MODE=${THETA_MODE:-online}
+# export THETA_PW=${THETA_PW:-qwertyuiop}
 
 echo $THETA_NETWORK
 echo $THETA_MODE
