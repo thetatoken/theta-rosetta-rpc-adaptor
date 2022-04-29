@@ -58,8 +58,24 @@ func (s *accountAPIService) AccountBalance(
 		blockHeight = status.LatestFinalizedBlockHeight
 		blockHash = status.LatestFinalizedBlockHash.String()
 	} else {
-		blockHeight = common.JSONUint64(*request.BlockIdentifier.Index)
-		blockHash = *request.BlockIdentifier.Hash
+		if request.BlockIdentifier.Index != nil && request.BlockIdentifier.Hash != nil {
+			blockHeight = common.JSONUint64(*request.BlockIdentifier.Index)
+			blockHash = *request.BlockIdentifier.Hash
+		} else if request.BlockIdentifier.Index != nil {
+			blockHeight = common.JSONUint64(*request.BlockIdentifier.Index)
+			blk, err := cmn.GetBlockIdentifierByHeight(s.client, blockHeight)
+			if err != nil {
+				return nil, cmn.ErrUnableToGetAccount
+			}
+			blockHash = blk.Hash.Hex()
+		} else {
+			blockHash = *request.BlockIdentifier.Hash
+			blk, err := cmn.GetBlockIdentifierByHash(s.client, *request.BlockIdentifier.Hash)
+			if err != nil {
+				return nil, cmn.ErrUnableToGetAccount
+			}
+			blockHeight = blk.Height
+		}
 	}
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{

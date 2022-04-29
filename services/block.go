@@ -85,21 +85,13 @@ func (s *blockAPIService) Block(
 	var rpcRes *jrpc.RPCResponse
 	var rpcErr error
 
-	if request.BlockIdentifier == nil || (request.BlockIdentifier.Index == nil && request.BlockIdentifier.Hash == nil) {
-		status, err := cmn.GetStatus(s.client)
-		if err != nil {
-			return nil, cmn.ErrMissingBlockHashOrHeight
-		}
+	if request.BlockIdentifier.Index != nil {
 		rpcRes, rpcErr = s.client.Call("theta.GetBlockByHeight", GetBlockByHeightArgs{
-			Height: common.JSONUint64(status.CurrentHeight),
+			Height: common.JSONUint64(*request.BlockIdentifier.Index),
 		})
 	} else if request.BlockIdentifier.Hash != nil {
 		rpcRes, rpcErr = s.client.Call("theta.GetBlock", GetBlockArgs{
 			Hash: common.HexToHash(*request.BlockIdentifier.Hash),
-		})
-	} else if request.BlockIdentifier.Index != nil {
-		rpcRes, rpcErr = s.client.Call("theta.GetBlockByHeight", GetBlockByHeightArgs{
-			Height: common.JSONUint64(*request.BlockIdentifier.Index),
 		})
 	}
 

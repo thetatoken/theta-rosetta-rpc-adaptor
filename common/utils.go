@@ -13,6 +13,7 @@ import (
 
 	"github.com/coinbase/rosetta-sdk-go/types"
 	log "github.com/sirupsen/logrus"
+	"github.com/thetatoken/theta/common"
 	cmn "github.com/thetatoken/theta/common"
 	"github.com/thetatoken/theta/crypto"
 	"github.com/thetatoken/theta/crypto/bls"
@@ -71,8 +72,8 @@ func ValidateNetworkIdentifier(ctx context.Context, ni *types.NetworkIdentifier)
 		if !strings.EqualFold(ni.Network, GetChainId()) {
 			return ErrInvalidNetwork
 		}
-		// } else {
-		// 	return ErrMissingNID
+	} else {
+		return ErrMissingNID
 	}
 	return nil
 }
@@ -107,6 +108,57 @@ func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
 	}
 
 	trpcResult := GetStatusResult{}
+	json.Unmarshal(jsonBytes, &trpcResult)
+
+	return &trpcResult, nil
+}
+
+// ------------------------------ BlockIdentifier -----------------------------------
+
+type GetBlockIdentifierByHashArgs struct {
+	Hash cmn.Hash `json:"hash"`
+}
+
+type GetBlockIdentifierByHeightArgs struct {
+	Height cmn.JSONUint64 `json:"height"`
+}
+
+type GetBlockIdentifierResultInner struct {
+	Height common.JSONUint64 `json:"height"`
+	Hash   common.Hash       `json:"hash"`
+}
+
+type GetBlocIdentifierResult struct {
+	*GetBlockIdentifierResultInner
+}
+
+func GetBlockIdentifierByHeight(client jrpc.RPCClient, height cmn.JSONUint64) (*GetBlocIdentifierResult, error) {
+	rpcRes, rpcErr := client.Call("theta.GetBlockByHeight", GetBlockIdentifierByHeightArgs{
+		Height: height,
+	})
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+	return parseBlockIdentifierResult(rpcRes)
+}
+
+func GetBlockIdentifierByHash(client jrpc.RPCClient, hash string) (*GetBlocIdentifierResult, error) {
+	rpcRes, rpcErr := client.Call("theta.GetBlock", GetBlockIdentifierByHashArgs{
+		Hash: common.HexToHash(hash),
+	})
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+	return parseBlockIdentifierResult(rpcRes)
+}
+
+func parseBlockIdentifierResult(rpcRes *jrpc.RPCResponse) (*GetBlocIdentifierResult, error) {
+	jsonBytes, err := json.MarshalIndent(rpcRes.Result, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse theta RPC response: %v, %s", err, string(jsonBytes))
+	}
+
+	trpcResult := GetBlocIdentifierResult{}
 	json.Unmarshal(jsonBytes, &trpcResult)
 
 	return &trpcResult, nil
@@ -186,7 +238,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 
 		thetaWei := "0"
 		if input.Coins.ThetaWei != nil {
-			thetaWei = input.Coins.ThetaWei.String()
+			thetaWei = new(big.Int).Mul(input.Coins.ThetaWei, big.NewInt(-1)).String()
 		}
 		inputOp := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -206,7 +258,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 
 		tfuelWei := "0"
 		if input.Coins.TFuelWei != nil {
-			tfuelWei = input.Coins.TFuelWei.String()
+			tfuelWei = new(big.Int).Mul(input.Coins.TFuelWei, big.NewInt(-1)).String()
 		}
 		inputOp = &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},

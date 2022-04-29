@@ -11,8 +11,6 @@ const (
 	// CfgThetaRPCEndpoint configures the Theta RPC endpoint
 	CfgThetaRPCEndpoint = "theta.rpcEndpoint"
 
-	// CfgRPCEnabled sets whether to run RPC service.
-	CfgRPCEnabled = "rpc.enabled"
 	// CfgRPCHttpAddress sets the binding address of RPC http service.
 	CfgRPCHttpAddress = "rpc.httpAddress"
 	// CfgRPCHttpPort sets the port of RPC http service.
@@ -38,7 +36,6 @@ const (
 func init() {
 	viper.SetDefault(CfgThetaRPCEndpoint, "http://127.0.0.1:16888/rpc")
 
-	viper.SetDefault(CfgRPCEnabled, true)
 	viper.SetDefault(CfgRPCHttpAddress, "0.0.0.0")
 	viper.SetDefault(CfgRPCHttpPort, "8080")
 	viper.SetDefault(CfgRPCWSAddress, "0.0.0.0")
