@@ -9,6 +9,8 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
 )
 
 var cfgPath string
@@ -32,6 +34,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVar(&cfgPath, "config", getDefaultConfigPath(), fmt.Sprintf("config path (default is %s)", getDefaultConfigPath()))
+	viper.BindPFlag(cmn.CfgRosettaMode, RootCmd.PersistentFlags().Lookup("mode"))
 }
 
 // initConfig reads in config file and ENV variables if set.

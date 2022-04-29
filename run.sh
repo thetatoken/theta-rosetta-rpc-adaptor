@@ -12,4 +12,4 @@ export THETA_PW=${THETA_PW:-qwertyuiop}
 
 sleep 30
 
-/app/theta-rosetta-rpc-adaptor start
+/app/theta-rosetta-rpc-adaptor start --mode=$THETA_MODE

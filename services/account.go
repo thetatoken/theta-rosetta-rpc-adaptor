@@ -8,6 +8,7 @@ import (
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
 
+	"github.com/spf13/viper"
 	jrpc "github.com/ybbus/jsonrpc"
 
 	cmn "github.com/thetatoken/theta-rosetta-rpc-adaptor/common"
@@ -44,6 +45,10 @@ func (s *accountAPIService) AccountBalance(
 	ctx context.Context,
 	request *types.AccountBalanceRequest,
 ) (*types.AccountBalanceResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}
@@ -139,6 +144,10 @@ func (s *accountAPIService) AccountCoins(
 	ctx context.Context,
 	request *types.AccountCoinsRequest,
 ) (*types.AccountCoinsResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}

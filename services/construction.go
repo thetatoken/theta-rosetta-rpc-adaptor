@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -185,6 +188,10 @@ func (s *constructionAPIService) ConstructionMetadata(
 	ctx context.Context,
 	request *types.ConstructionMetadataRequest,
 ) (*types.ConstructionMetadataResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}
@@ -649,6 +656,10 @@ func (s *constructionAPIService) ConstructionSubmit(
 	ctx context.Context,
 	request *types.ConstructionSubmitRequest,
 ) (*types.TransactionIdentifierResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}

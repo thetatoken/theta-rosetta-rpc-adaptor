@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -34,6 +37,10 @@ func (s *memPoolAPIService) Mempool(
 	ctx context.Context,
 	request *types.NetworkRequest,
 ) (*types.MempoolResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}

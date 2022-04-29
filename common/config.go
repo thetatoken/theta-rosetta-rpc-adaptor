@@ -30,7 +30,12 @@ const (
 	// there are more than one node running).
 	CfgLogPrintSelfID = "log.printSelfID"
 
-	CfgRosettaVersion = "rosettaVersion"
+	CfgRosettaVersion = "rosetta.version"
+
+	// CfgRosettaMode determines if the implementation is permitted to make outbound connections.
+	CfgRosettaMode        = "rosetta.mode"
+	CfgRosettaModeOnline  = "online"
+	CfgRosettaModeOffline = "offline"
 )
 
 func init() {
@@ -47,4 +52,5 @@ func init() {
 	viper.SetDefault(CfgLogPrintSelfID, false)
 
 	viper.SetDefault(CfgRosettaVersion, "1.1.1")
+	viper.SetDefault(CfgRosettaMode, "online")
 }

@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/spf13/viper"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -78,6 +81,10 @@ func (s *blockAPIService) Block(
 	ctx context.Context,
 	request *types.BlockRequest,
 ) (*types.BlockResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}
@@ -155,6 +162,10 @@ func (s *blockAPIService) BlockTransaction(
 	ctx context.Context,
 	request *types.BlockTransactionRequest,
 ) (*types.BlockTransactionResponse, *types.Error) {
+	if !strings.EqualFold(cmn.CfgRosettaModeOnline, viper.GetString(cmn.CfgRosettaMode)) {
+		return nil, cmn.ErrUnavailableOffline
+	}
+
 	if err := cmn.ValidateNetworkIdentifier(ctx, request.NetworkIdentifier); err != nil {
 		return nil, err
 	}
