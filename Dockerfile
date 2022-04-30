@@ -1,38 +1,64 @@
-FROM golang:1.14.2 as build
+# ------------------------------------------------------------------------------
+# Build Theta
+# ------------------------------------------------------------------------------
+FROM golang:1.14.1 as service-builder
 
-# RUN apt-get update && apt-get install -y curl make gcc g++ git
 ENV GO111MODULE=on
+ENV THETA_HOME=$GOPATH/src/github.com/thetatoken/theta
 
-# ENV GIT_TERMINAL_PROMPT=1
+WORKDIR $THETA_HOME
 
-ENV THETA_TOKEN_HOME=$GOPATH/src/github.com/thetatoken
-
-WORKDIR $THETA_TOKEN_HOME/theta
-RUN git clone https://github.com/thetatoken/theta-protocol-ledger.git .
+RUN git clone --branch release https://github.com/thetatoken/theta-protocol-ledger.git .
 
 RUN make install
-RUN cp -r ./integration/privatenet ../privatenet
-RUN mkdir ~/.thetacli
-RUN cp -r ./integration/privatenet/thetacli/* ~/.thetacli/
-RUN chmod 700 ~/.thetacli/keys/encrypted
 
-WORKDIR $THETA_TOKEN_HOME/theta-rosetta-rpc-adaptor
+# ------------------------------------------------------------------------------
+# Build Theta Rosetta
+# ------------------------------------------------------------------------------
+ENV ROSETTA_HOME=$GOPATH/src/github.com/thetatoken/theta-rosetta-rpc-adaptor
+
+WORKDIR $ROSETTA_HOME
+
 RUN git clone https://github.com/thetatoken/theta-rosetta-rpc-adaptor.git .
 
 RUN make install
 
-COPY ./run.sh $GOPATH/bin
+# ------------------------------------------------------------------------------
+# Build final image
+# ------------------------------------------------------------------------------
+FROM ubuntu:20.04
 
-# FROM alpine:latest
-# RUN apk add --no-cache ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
 
-ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:$PATH
+RUN mkdir -p /app \
+  && chown -R nobody:nogroup /app \
+  && mkdir -p /data \
+  && chown -R nobody:nogroup /data
 
-# RUN mkdir -p /app \
-#   && chown -R nobody:nogroup /app \
-#   && mkdir -p /data \
-#   && chown -R nobody:nogroup /data
-# RUN chmod -R 755 /app/*
+ENV THETA_TOKEN_HOME=/go/src/github.com/thetatoken/theta
+WORKDIR $THETA_TOKEN_HOME
 
-CMD [ "run.sh" ]
+COPY --from=service-builder /go/src/github.com/thetatoken/theta .
+
+RUN mkdir -p ../mainnet/walletnode
+
+# Copy binary from theta-builder
+COPY --from=service-builder /go/bin/theta /app/theta
+
+# # Copy binary from rosetta-builder
+COPY --from=service-builder /go/bin/theta-rosetta-rpc-adaptor /app/theta-rosetta-rpc-adaptor
+
+# Install service start script
+COPY --from=service-builder \
+  /go/src/github.com/thetatoken/theta-rosetta-rpc-adaptor/run.sh \
+  /app/run.sh
+
+# Set permissions for everything added to /app
+RUN chmod -R 755 /app/*
+
 EXPOSE 8080
+EXPOSE 15872
+EXPOSE 21000
+EXPOSE 30001
+
+ENTRYPOINT [ "/app/run.sh" ]
