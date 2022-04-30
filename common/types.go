@@ -107,10 +107,13 @@ const (
 	SplitRuleTxInitiator
 	SmartContractTxFrom
 	SmartContractTxTo
+	SmartContractTxFee
 	DepositStakeTxSource
 	DepositStakeTxHolder
+	DepositStakeTxFee
 	WithdrawStakeTxSource
 	WithdrawStakeTxHolder
+	WithdrawStakeTxFee
 	StakeRewardDistributionTxHolder
 	StakeRewardDistributionTxBeneficiary
 )
@@ -130,10 +133,13 @@ func (t TxOpType) String() string {
 		"SplitRuleTxInitiator",
 		"SmartContractTxFrom",
 		"SmartContractTxTo",
+		"SmartContractTxFee",
 		"DepositStakeTxSource",
 		"DepositStakeTxHolder",
+		"DepositStakeTxFee",
 		"WithdrawStakeTxSource",
 		"WithdrawStakeTxHolder",
+		"WithdrawStakeTxFee",
 		"StakeRewardDistributionTxHolder",
 		"StakeRewardDistributionTxBeneficiary",
 	}[t]
@@ -154,10 +160,13 @@ func TxOpTypes() []string {
 		"SplitRuleTxInitiator",
 		"SmartContractTxFrom",
 		"SmartContractTxTo",
+		"SmartContractTxFee",
 		"DepositStakeTxSource",
 		"DepositStakeTxHolder",
+		"DepositStakeTxFee",
 		"WithdrawStakeTxSource",
 		"WithdrawStakeTxHolder",
+		"WithdrawStakeTxFee",
 		"StakeRewardDistributionTxHolder",
 		"StakeRewardDistributionTxBeneficiary",
 	}

@@ -135,7 +135,12 @@ func (s *blockAPIService) Block(
 			var txMaps []map[string]json.RawMessage
 			json.Unmarshal(objMap["transactions"], &txMaps)
 			for i, txMap := range txMaps {
-				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status)
+				var gasUsed uint64
+				if tblock.Txs[i].Receipt != nil {
+					gasUsed = tblock.Txs[i].Receipt.GasUsed
+				}
+
+				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed)
 				txs = append(txs, &tx)
 			}
 		}
@@ -178,6 +183,11 @@ func (s *blockAPIService) BlockTransaction(
 		txResult := GetTransactionResult{}
 		json.Unmarshal(jsonBytes, &txResult)
 
+		var gasUsed uint64
+		if txResult.Receipt != nil {
+			gasUsed = txResult.Receipt.GasUsed
+		}
+
 		resp := types.BlockTransactionResponse{}
 
 		var objMap map[string]json.RawMessage
@@ -191,7 +201,7 @@ func (s *blockAPIService) BlockTransaction(
 			}
 			status := string(txResult.Status)
 			if "not_found" != status {
-				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status)
+				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed)
 				resp.Transaction = &tx
 			}
 		}
