@@ -21,6 +21,6 @@ else
     /app/theta start --config=../privatenet/node --password=$THETA_PW &
 fi
 
-sleep 60
+sleep 90
 
 /app/theta-rosetta-rpc-adaptor start --mode=$THETA_MODE

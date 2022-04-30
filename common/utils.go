@@ -189,7 +189,7 @@ func ParseCoinbaseTx(coinbaseTx ttypes.CoinbaseTx, status *string, txType TxType
 	for i, output := range coinbaseTx.Outputs {
 		outputOp := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: int64(i) + 1},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: 0}},
 			Type:                CoinbaseTxOutput.String(),
 			Account:             &types.AccountIdentifier{Address: output.Address.String()},
 			Amount:              &types.Amount{Value: output.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
@@ -251,7 +251,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			inputOp.Status = status
 		}
 		if i > 0 {
-			inputOp.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, inputOp)
 		i++
@@ -271,7 +271,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 			inputOp.Status = status
 		}
 		if i > 0 {
-			inputOp.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, inputOp)
 		i++
@@ -285,7 +285,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 
 		outputOp := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                SendTxOutput.String(),
 			Account:             &types.AccountIdentifier{Address: output.Address.String()},
 			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
@@ -303,7 +303,7 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 
 		outputOp = &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                SendTxOutput.String(),
 			Account:             &types.AccountIdentifier{Address: output.Address.String()},
 			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
@@ -417,7 +417,7 @@ func ParseServicePaymentTx(servicePaymentTx ttypes.ServicePaymentTx, status *str
 	}
 	targetOp := types.Operation{
 		OperationIdentifier: &types.OperationIdentifier{Index: 1},
-		RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: 0}},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 0}},
 		Type:                ServicePaymentTxTarget.String(),
 		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Target.Address.String()},
 		Amount:              &types.Amount{Value: servicePaymentTx.Target.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
@@ -493,7 +493,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 			thetaFrom.Status = status
 		}
 		if i > 0 {
-			thetaFrom.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			thetaFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, &thetaFrom)
 		i++
@@ -510,7 +510,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 			tfuelFrom.Status = status
 		}
 		if i > 0 {
-			tfuelFrom.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			tfuelFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, &tfuelFrom)
 		i++
@@ -527,7 +527,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 			thetaTo.Status = status
 		}
 		if i > 0 {
-			thetaTo.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			thetaTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, &thetaTo)
 		i++
@@ -543,7 +543,7 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 			tfuelTo.Status = status
 		}
 		if i > 0 {
-			tfuelTo.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			tfuelTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, &tfuelTo)
 		i++
@@ -594,7 +594,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 			thetaSource.Status = status
 		}
 		if i > 0 {
-			thetaSource.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			thetaSource.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, thetaSource)
 		i++
@@ -611,7 +611,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 			tfuelSource.Status = status
 		}
 		if i > 0 {
-			tfuelSource.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			tfuelSource.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, tfuelSource)
 		i++
@@ -619,7 +619,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 	if depositStakeTx.Holder.Coins.ThetaWei != nil && depositStakeTx.Holder.Coins.ThetaWei != big.NewInt(0) {
 		thetaHolder := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                DepositStakeTxHolder.String(),
 			Account:             &types.AccountIdentifier{Address: depositStakeTx.Holder.Address.String()},
 			Amount:              &types.Amount{Value: depositStakeTx.Holder.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
@@ -633,7 +633,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 	if depositStakeTx.Holder.Coins.TFuelWei != nil && depositStakeTx.Holder.Coins.TFuelWei != big.NewInt(0) {
 		tfuelHolder := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                DepositStakeTxHolder.String(),
 			Account:             &types.AccountIdentifier{Address: depositStakeTx.Holder.Address.String()},
 			Amount:              &types.Amount{Value: depositStakeTx.Holder.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
@@ -680,7 +680,7 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 			thetaSource.Status = status
 		}
 		if i > 0 {
-			thetaSource.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			thetaSource.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, thetaSource)
 		i++
@@ -697,7 +697,7 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 			tfuelSource.Status = status
 		}
 		if i > 0 {
-			tfuelSource.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			tfuelSource.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, tfuelSource)
 		i++
@@ -706,7 +706,7 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 	if withdrawStakeTx.Holder.Coins.ThetaWei != nil && withdrawStakeTx.Holder.Coins.ThetaWei != big.NewInt(0) {
 		thetaHolder := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                WithdrawStakeTxHolder.String(),
 			Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Holder.Address.String()},
 			Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Holder.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
@@ -720,7 +720,7 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 	if withdrawStakeTx.Holder.Coins.TFuelWei != nil && withdrawStakeTx.Holder.Coins.TFuelWei != big.NewInt(0) {
 		tfuelHolder := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                WithdrawStakeTxHolder.String(),
 			Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Holder.Address.String()},
 			Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Holder.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
@@ -769,7 +769,7 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 			tfuelInput.Status = status
 		}
 		if i > 0 {
-			tfuelInput.RelatedOperations = []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}}
+			tfuelInput.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, tfuelInput)
 		i++
@@ -778,7 +778,7 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 	if stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != nil && stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != big.NewInt(0) {
 		thetaOutput := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                StakeRewardDistributionTxBeneficiary.String(),
 			Account:             &types.AccountIdentifier{Address: stakeRewardDistributionTx.Beneficiary.Address.String()},
 			Amount:              &types.Amount{Value: stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
@@ -792,7 +792,7 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 	if stakeRewardDistributionTx.Beneficiary.Coins.TFuelWei != nil && stakeRewardDistributionTx.Beneficiary.Coins.TFuelWei != big.NewInt(0) {
 		tfuelOutput := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{&types.OperationIdentifier{Index: i - 1}},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
 			Type:                StakeRewardDistributionTxBeneficiary.String(),
 			Account:             &types.AccountIdentifier{Address: stakeRewardDistributionTx.Beneficiary.Address.String()},
 			Amount:              &types.Amount{Value: stakeRewardDistributionTx.Beneficiary.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
