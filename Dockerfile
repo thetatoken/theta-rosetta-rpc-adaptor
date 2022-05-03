@@ -29,6 +29,8 @@ RUN make install
 FROM ubuntu:20.04
 
 RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+RUN apt-get -y install curl
+RUN apt-get -y install wget
 
 RUN mkdir -p /app \
   && chown -R nobody:nogroup /app \
@@ -44,6 +46,7 @@ RUN mkdir -p ../mainnet/walletnode
 
 # Copy binary from theta-builder
 COPY --from=service-builder /go/bin/theta /app/theta
+COPY --from=service-builder /go/bin/thetacli /app/thetacli
 
 # # Copy binary from rosetta-builder
 COPY --from=service-builder /go/bin/theta-rosetta-rpc-adaptor /app/theta-rosetta-rpc-adaptor
