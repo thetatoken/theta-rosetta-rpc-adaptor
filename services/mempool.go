@@ -103,7 +103,7 @@ func (s *memPoolAPIService) MempoolTransaction(
 			json.Unmarshal(objMap["transaction"], &rawTx)
 			status := string(txResult.Status)
 			if "not_found" != status {
-				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed)
+				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed, txResult.BalanceChanges)
 				resp.Transaction = &tx
 			}
 		}

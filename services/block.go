@@ -41,13 +41,14 @@ type GetTransactionArgs struct {
 }
 
 type GetTransactionResult struct {
-	BlockHash   common.Hash                `json:"block_hash"`
-	BlockHeight common.JSONUint64          `json:"block_height"`
-	Status      cmn.TxStatus               `json:"status"`
-	TxHash      common.Hash                `json:"hash"`
-	Type        byte                       `json:"type"`
-	Tx          ttypes.Tx                  `json:"transaction"`
-	Receipt     *blockchain.TxReceiptEntry `json:"receipt"`
+	BlockHash      common.Hash                       `json:"block_hash"`
+	BlockHeight    common.JSONUint64                 `json:"block_height"`
+	Status         cmn.TxStatus                      `json:"status"`
+	TxHash         common.Hash                       `json:"hash"`
+	Type           byte                              `json:"type"`
+	Tx             ttypes.Tx                         `json:"transaction"`
+	Receipt        *blockchain.TxReceiptEntry        `json:"receipt"`
+	BalanceChanges *blockchain.TxBalanceChangesEntry `json:"blance_changes"`
 }
 
 type GetBlockResultInner struct {
@@ -140,7 +141,7 @@ func (s *blockAPIService) Block(
 					gasUsed = tblock.Txs[i].Receipt.GasUsed
 				}
 
-				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed)
+				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed, tblock.Txs[i].BalanceChanges)
 				txs = append(txs, &tx)
 			}
 		}
@@ -201,7 +202,7 @@ func (s *blockAPIService) BlockTransaction(
 			}
 			status := string(txResult.Status)
 			if "not_found" != status {
-				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed)
+				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed, txResult.BalanceChanges)
 				resp.Transaction = &tx
 			}
 		}

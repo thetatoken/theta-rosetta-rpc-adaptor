@@ -13,7 +13,7 @@ import (
 
 	"github.com/coinbase/rosetta-sdk-go/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/thetatoken/theta/common"
+	"github.com/thetatoken/theta/blockchain"
 	cmn "github.com/thetatoken/theta/common"
 	"github.com/thetatoken/theta/crypto"
 	"github.com/thetatoken/theta/crypto/bls"
@@ -124,8 +124,8 @@ type GetBlockIdentifierByHeightArgs struct {
 }
 
 type GetBlockIdentifierResultInner struct {
-	Height common.JSONUint64 `json:"height"`
-	Hash   common.Hash       `json:"hash"`
+	Height cmn.JSONUint64 `json:"height"`
+	Hash   cmn.Hash       `json:"hash"`
 }
 
 type GetBlocIdentifierResult struct {
@@ -144,7 +144,7 @@ func GetBlockIdentifierByHeight(client jrpc.RPCClient, height cmn.JSONUint64) (*
 
 func GetBlockIdentifierByHash(client jrpc.RPCClient, hash string) (*GetBlocIdentifierResult, error) {
 	rpcRes, rpcErr := client.Call("theta.GetBlock", GetBlockIdentifierByHashArgs{
-		Hash: common.HexToHash(hash),
+		Hash: cmn.HexToHash(hash),
 	})
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -455,7 +455,7 @@ func ParseSplitRuleTx(splitRuleTx ttypes.SplitRuleTx, status *string, txType TxT
 	return
 }
 
-func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string, txType TxType, gasUsed uint64) (metadata map[string]interface{}, ops []*types.Operation) {
+func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string, txType TxType, gasUsed uint64, balanceChanges *blockchain.TxBalanceChangesEntry) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":      txType,
 		"gas_limit": smartContractTx.GasLimit,
@@ -463,7 +463,6 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		"data":      smartContractTx.Data,
 	}
 
-	sigBytes, _ := smartContractTx.From.Signature.MarshalJSON()
 	var i int64
 
 	if gasUsed != 0 {
@@ -481,73 +480,112 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		i++
 	}
 
-	if smartContractTx.From.Coins.ThetaWei != nil && smartContractTx.From.Coins.ThetaWei != big.NewInt(0) {
-		thetaFrom := types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SmartContractTxFrom.String(),
-			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
-			Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
+	for _, balanceChange := range balanceChanges.BalanceChanges {
+		if balanceChange.TokenType > 1 {
+			continue
 		}
+
+		var currency *types.Currency
+		if balanceChange.TokenType == 0 {
+			currency = GetThetaCurrency()
+		} else {
+			currency = GetTFuelCurrency()
+		}
+
+		amount := "0"
+		var opType string
+		if balanceChange.IsNegative {
+			amount = new(big.Int).Mul(balanceChange.Delta, big.NewInt(-1)).String()
+			opType = SmartContractTxFrom.String()
+		} else {
+			amount = balanceChange.Delta.String()
+			opType = SmartContractTxTo.String()
+		}
+
+		op := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                opType,
+			Account:             &types.AccountIdentifier{Address: balanceChange.Address.String()},
+			Amount:              &types.Amount{Value: amount, Currency: currency},
+		}
+
 		if status != nil {
-			thetaFrom.Status = status
+			op.Status = status
 		}
 		if i > 0 {
-			thetaFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+			op.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
-		ops = append(ops, &thetaFrom)
-		i++
-	}
-	if smartContractTx.From.Coins.TFuelWei != nil && smartContractTx.From.Coins.TFuelWei != big.NewInt(0) {
-		tfuelFrom := types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SmartContractTxFrom.String(),
-			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
-			Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
-		}
-		if status != nil {
-			tfuelFrom.Status = status
-		}
-		if i > 0 {
-			tfuelFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, &tfuelFrom)
+		ops = append(ops, op)
 		i++
 	}
 
-	if smartContractTx.To.Coins.ThetaWei != nil && smartContractTx.To.Coins.ThetaWei != big.NewInt(0) {
-		thetaTo := types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SmartContractTxTo.String(),
-			Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
-			Amount:              &types.Amount{Value: smartContractTx.To.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
-		}
-		if status != nil {
-			thetaTo.Status = status
-		}
-		if i > 0 {
-			thetaTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, &thetaTo)
-		i++
-	}
-	if smartContractTx.To.Coins.TFuelWei != nil && smartContractTx.To.Coins.TFuelWei != big.NewInt(0) {
-		tfuelTo := types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SmartContractTxTo.String(),
-			Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
-			Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
-		}
-		if status != nil {
-			tfuelTo.Status = status
-		}
-		if i > 0 {
-			tfuelTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, &tfuelTo)
-		i++
-	}
+	// if smartContractTx.From.Coins.ThetaWei != nil && smartContractTx.From.Coins.ThetaWei != big.NewInt(0) {
+	// 	thetaFrom := types.Operation{
+	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
+	// 		Type:                SmartContractTxFrom.String(),
+	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
+	// 		Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
+	// 		Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
+	// 	}
+	// 	if status != nil {
+	// 		thetaFrom.Status = status
+	// 	}
+	// 	if i > 0 {
+	// 		thetaFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	// 	}
+	// 	ops = append(ops, &thetaFrom)
+	// 	i++
+	// }
+	// if smartContractTx.From.Coins.TFuelWei != nil && smartContractTx.From.Coins.TFuelWei != big.NewInt(0) {
+	// 	tfuelFrom := types.Operation{
+	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
+	// 		Type:                SmartContractTxFrom.String(),
+	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
+	// 		Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+	// 		Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
+	// 	}
+	// 	if status != nil {
+	// 		tfuelFrom.Status = status
+	// 	}
+	// 	if i > 0 {
+	// 		tfuelFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	// 	}
+	// 	ops = append(ops, &tfuelFrom)
+	// 	i++
+	// }
+
+	// if smartContractTx.To.Coins.ThetaWei != nil && smartContractTx.To.Coins.ThetaWei != big.NewInt(0) {
+	// 	thetaTo := types.Operation{
+	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
+	// 		Type:                SmartContractTxTo.String(),
+	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
+	// 		Amount:              &types.Amount{Value: smartContractTx.To.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
+	// 	}
+	// 	if status != nil {
+	// 		thetaTo.Status = status
+	// 	}
+	// 	if i > 0 {
+	// 		thetaTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	// 	}
+	// 	ops = append(ops, &thetaTo)
+	// 	i++
+	// }
+	// if smartContractTx.To.Coins.TFuelWei != nil && smartContractTx.To.Coins.TFuelWei != big.NewInt(0) {
+	// 	tfuelTo := types.Operation{
+	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
+	// 		Type:                SmartContractTxTo.String(),
+	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
+	// 		Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
+	// 	}
+	// 	if status != nil {
+	// 		tfuelTo.Status = status
+	// 	}
+	// 	if i > 0 {
+	// 		tfuelTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	// 	}
+	// 	ops = append(ops, &tfuelTo)
+	// 	i++
+	// }
 	return
 }
 
@@ -805,7 +843,7 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 	return
 }
 
-func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *string, gasUsed uint64) types.Transaction {
+func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *string, gasUsed uint64, balanceChanges *blockchain.TxBalanceChangesEntry) types.Transaction {
 	transaction := types.Transaction{
 		TransactionIdentifier: &types.TransactionIdentifier{Hash: txHash.String()},
 	}
@@ -842,7 +880,7 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 	case SmartContractTx:
 		smartContractTx := ttypes.SmartContractTx{}
 		json.Unmarshal(rawTx, &smartContractTx)
-		transaction.Metadata, transaction.Operations = ParseSmartContractTx(smartContractTx, status, txType, gasUsed)
+		transaction.Metadata, transaction.Operations = ParseSmartContractTx(smartContractTx, status, txType, gasUsed, balanceChanges)
 	case DepositStakeTx, DepositStakeV2Tx:
 		depositStakeTx := ttypes.DepositStakeTxV2{}
 		json.Unmarshal(rawTx, &depositStakeTx)

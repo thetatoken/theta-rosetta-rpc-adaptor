@@ -36,10 +36,11 @@ type TxType byte
 type TxStatus string
 
 type Tx struct {
-	ttypes.Tx `json:"raw"`
-	Type      TxType                     `json:"type"`
-	Hash      common.Hash                `json:"hash"`
-	Receipt   *blockchain.TxReceiptEntry `json:"receipt"`
+	ttypes.Tx      `json:"raw"`
+	Type           TxType                            `json:"type"`
+	Hash           common.Hash                       `json:"hash"`
+	Receipt        *blockchain.TxReceiptEntry        `json:"receipt"`
+	BalanceChanges *blockchain.TxBalanceChangesEntry `json:"balance_changes"`
 }
 
 const (

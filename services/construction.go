@@ -493,7 +493,7 @@ func (s *constructionAPIService) ConstructionParse(
 	case *ttypes.SmartContractTx:
 		tran := *tx.(*ttypes.SmartContractTx)
 		sender = tran.From.Address.String()
-		meta, ops = cmn.ParseSmartContractTx(tran, nil, cmn.SmartContractTx, uint64(0)) //TODO: gas used = 0?
+		meta, ops = cmn.ParseSmartContractTx(tran, nil, cmn.SmartContractTx, uint64(0), nil) //TODO: gas used = 0?
 	case *ttypes.DepositStakeTx, *ttypes.DepositStakeTxV2:
 		tran := *tx.(*ttypes.DepositStakeTxV2)
 		sender = tran.Source.Address.String()
