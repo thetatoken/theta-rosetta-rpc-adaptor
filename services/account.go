@@ -70,14 +70,14 @@ func (s *accountAPIService) AccountBalance(
 			blockHeight = common.JSONUint64(*request.BlockIdentifier.Index)
 			blk, err := cmn.GetBlockIdentifierByHeight(s.client, blockHeight)
 			if err != nil {
-				return nil, cmn.ErrUnableToGetAccount
+				return nil, err
 			}
 			blockHash = blk.Hash.Hex()
 		} else {
 			blockHash = *request.BlockIdentifier.Hash
 			blk, err := cmn.GetBlockIdentifierByHash(s.client, *request.BlockIdentifier.Hash)
 			if err != nil {
-				return nil, cmn.ErrUnableToGetAccount
+				return nil, err
 			}
 			blockHeight = blk.Height
 		}
@@ -87,6 +87,22 @@ func (s *accountAPIService) AccountBalance(
 		Address: request.AccountIdentifier.Address,
 		Height:  blockHeight,
 	})
+
+	if rpcRes != nil && rpcRes.Error != nil && rpcRes.Error.Code == -32000 {
+		resp := types.AccountBalanceResponse{}
+		resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(blockHeight), Hash: blockHash}
+
+		var thetaBalance types.Amount
+		thetaBalance.Value = "0"
+		thetaBalance.Currency = cmn.GetThetaCurrency()
+		resp.Balances = append(resp.Balances, &thetaBalance)
+		var tfuelBalance types.Amount
+		tfuelBalance.Value = "0"
+		tfuelBalance.Currency = cmn.GetTFuelCurrency()
+		resp.Balances = append(resp.Balances, &tfuelBalance)
+
+		return &resp, nil
+	}
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		account := GetAccountResult{}.Account
@@ -153,17 +169,41 @@ func (s *accountAPIService) AccountCoins(
 	}
 
 	status, err := cmn.GetStatus(s.client)
+	blockIdentifier := &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
 
 	rpcRes, rpcErr := s.client.Call("theta.GetAccount", GetAccountArgs{
 		Address: request.AccountIdentifier.Address,
 	})
+
+	if rpcRes != nil && rpcRes.Error != nil && rpcRes.Error.Code == -32000 {
+		resp := types.AccountCoinsResponse{}
+		resp.BlockIdentifier = blockIdentifier
+
+		var thetaCoin types.Coin
+		thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomThetaWei}
+		var thetaBalance types.Amount
+		thetaBalance.Value = "0"
+		thetaBalance.Currency = cmn.GetThetaCurrency()
+		thetaCoin.Amount = &thetaBalance
+		resp.Coins = append(resp.Coins, &thetaCoin)
+
+		var tfuelCoin types.Coin
+		tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomTFuelWei}
+		var tfuelBalance types.Amount
+		tfuelBalance.Value = "0"
+		tfuelBalance.Currency = cmn.GetTFuelCurrency()
+		tfuelCoin.Amount = &tfuelBalance
+		resp.Coins = append(resp.Coins, &tfuelCoin)
+
+		return &resp, nil
+	}
 
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		account := GetAccountResult{}.Account
 		json.Unmarshal(jsonBytes, &account)
 
 		resp := types.AccountCoinsResponse{}
-		resp.BlockIdentifier = &types.BlockIdentifier{Index: int64(status.LatestFinalizedBlockHeight), Hash: status.LatestFinalizedBlockHash.String()}
+		resp.BlockIdentifier = blockIdentifier
 		resp.Metadata = map[string]interface{}{"sequence_number": account.Sequence}
 
 		var needTheta, needTFuel bool

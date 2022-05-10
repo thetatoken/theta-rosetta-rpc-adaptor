@@ -132,35 +132,52 @@ type GetBlocIdentifierResult struct {
 	*GetBlockIdentifierResultInner
 }
 
-func GetBlockIdentifierByHeight(client jrpc.RPCClient, height cmn.JSONUint64) (*GetBlocIdentifierResult, error) {
+func GetBlockIdentifierByHeight(client jrpc.RPCClient, height cmn.JSONUint64) (*GetBlocIdentifierResult, *types.Error) {
 	rpcRes, rpcErr := client.Call("theta.GetBlockByHeight", GetBlockIdentifierByHeightArgs{
 		Height: height,
 	})
 	if rpcErr != nil {
-		return nil, rpcErr
+		return nil, &types.Error{Message: fmt.Sprintf("failed to get block by height: %s", rpcErr.Error())}
+	}
+	if rpcRes != nil && rpcRes.Error != nil {
+		if rpcRes.Error.Code == -32000 {
+			return nil, ErrUnableToGetBlk
+		} else {
+			return nil, &types.Error{Message: fmt.Sprintf("failed to get block by height: %s", rpcRes.Error)}
+		}
 	}
 	return parseBlockIdentifierResult(rpcRes)
 }
 
-func GetBlockIdentifierByHash(client jrpc.RPCClient, hash string) (*GetBlocIdentifierResult, error) {
+func GetBlockIdentifierByHash(client jrpc.RPCClient, hash string) (*GetBlocIdentifierResult, *types.Error) {
 	rpcRes, rpcErr := client.Call("theta.GetBlock", GetBlockIdentifierByHashArgs{
 		Hash: cmn.HexToHash(hash),
 	})
 	if rpcErr != nil {
-		return nil, rpcErr
+		return nil, &types.Error{Message: fmt.Sprintf("failed to get block by hash: %s", rpcErr.Error())}
+	}
+	if rpcRes != nil && rpcRes.Error != nil {
+		if rpcRes.Error.Code == -32000 {
+			return nil, ErrUnableToGetBlk
+		} else {
+			return nil, &types.Error{Message: fmt.Sprintf("failed to get block by hash: %s", rpcRes.Error)}
+		}
 	}
 	return parseBlockIdentifierResult(rpcRes)
 }
 
-func parseBlockIdentifierResult(rpcRes *jrpc.RPCResponse) (*GetBlocIdentifierResult, error) {
+func parseBlockIdentifierResult(rpcRes *jrpc.RPCResponse) (*GetBlocIdentifierResult, *types.Error) {
 	jsonBytes, err := json.MarshalIndent(rpcRes.Result, "", "    ")
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse theta RPC response: %v, %s", err, string(jsonBytes))
+		return nil, &types.Error{Message: fmt.Sprintf("failed to parse theta RPC response: %v, %s", err, string(jsonBytes))}
 	}
 
 	trpcResult := GetBlocIdentifierResult{}
 	json.Unmarshal(jsonBytes, &trpcResult)
 
+	if trpcResult.GetBlockIdentifierResultInner == nil {
+		return nil, ErrUnableToGetBlk
+	}
 	return &trpcResult, nil
 }
 
@@ -684,6 +701,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 	return
 }
 
+// TODO: delayed balance change!
 func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":    txType,

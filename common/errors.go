@@ -72,7 +72,7 @@ var (
 	ErrUnableToGetBlk = &types.Error{
 		Code:      12,
 		Message:   "unable to get block",
-		Retriable: true,
+		Retriable: false,
 	}
 
 	ErrNotImplemented = &types.Error{
@@ -84,7 +84,7 @@ var (
 	ErrUnableToGetTxns = &types.Error{
 		Code:      14,
 		Message:   "unable to get transactions",
-		Retriable: true,
+		Retriable: false,
 	}
 
 	ErrUnableToSubmitTx = &types.Error{

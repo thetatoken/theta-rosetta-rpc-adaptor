@@ -111,6 +111,10 @@ func (s *blockAPIService) Block(
 		tblock := GetBlockResult{}
 		json.Unmarshal(jsonBytes, &tblock)
 
+		if tblock.GetBlockResultInner == nil {
+			return nil, fmt.Errorf(cmn.ErrUnableToGetBlk.Message)
+		}
+
 		block := types.Block{}
 		block.BlockIdentifier = &types.BlockIdentifier{Index: int64(tblock.Height), Hash: tblock.Hash.Hex()}
 		var parentHeight int64
@@ -183,6 +187,10 @@ func (s *blockAPIService) BlockTransaction(
 	parse := func(jsonBytes []byte) (interface{}, error) {
 		txResult := GetTransactionResult{}
 		json.Unmarshal(jsonBytes, &txResult)
+
+		if txResult.Tx == nil {
+			return nil, fmt.Errorf(cmn.ErrUnableToGetTxns.Message)
+		}
 
 		var gasUsed uint64
 		if txResult.Receipt != nil {
