@@ -18,14 +18,14 @@ const (
 
 func GetThetaCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   ttypes.DenomThetaWei,
+		Symbol:   "THETA",
 		Decimals: CoinDecimals,
 	}
 }
 
 func GetTFuelCurrency() *types.Currency {
 	return &types.Currency{
-		Symbol:   ttypes.DenomTFuelWei,
+		Symbol:   "TFUEL",
 		Decimals: CoinDecimals,
 	}
 }
