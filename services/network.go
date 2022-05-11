@@ -85,6 +85,7 @@ func (s *networkAPIService) NetworkStatus(
 		CurrentBlockIdentifier: &types.BlockIdentifier{Index: lastFinalized, Hash: status.LatestFinalizedBlockHash.Hex()},
 		CurrentBlockTimestamp:  status.LatestFinalizedBlockTime.ToInt().Int64() * 1000,
 		GenesisBlockIdentifier: &types.BlockIdentifier{Index: 0, Hash: status.GenesisBlockHash.Hex()},
+		OldestBlockIdentifier:  &types.BlockIdentifier{Index: int64(status.SnapshotBlockHeight), Hash: status.SnapshotBlockHash.Hex()},
 		SyncStatus:             &types.SyncStatus{CurrentIndex: &lastFinalized, TargetIndex: &currHeight, Synced: &synced},
 		Peers:                  peerList,
 	}

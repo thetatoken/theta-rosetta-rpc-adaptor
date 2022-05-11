@@ -95,6 +95,8 @@ type GetStatusResult struct {
 	CurrentTime                *cmn.JSONBig   `json:"current_time"`
 	Syncing                    bool           `json:"syncing"`
 	GenesisBlockHash           cmn.Hash       `json:"genesis_block_hash"`
+	SnapshotBlockHeight        cmn.JSONUint64 `json:"snapshot_block_height"`
+	SnapshotBlockHash          cmn.Hash       `json:"snapshot_block_hash"`
 }
 
 func GetStatus(client jrpc.RPCClient) (*GetStatusResult, error) {
