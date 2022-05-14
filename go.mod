@@ -7,6 +7,7 @@ require (
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.0
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/thetatoken/theta v0.0.0
 	github.com/thetatoken/theta/common v0.0.0
 	github.com/ybbus/jsonrpc v2.1.2+incompatible

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	Theta = "theta"
+	ChainName = "theta"
 
 	// Decimals
 	CoinDecimals = 18
@@ -218,4 +218,15 @@ func (s BlockStatus) String() string {
 		"trusted",
 		"disposed",
 	}[s]
+}
+
+// ------------------------------ Withdraw (Return) Stake Txs -----------------------------------
+
+type ReturnStakeTx struct {
+	Hash string                 `json:"hash"`
+	Tx   ttypes.WithdrawStakeTx `json:"tx"`
+}
+
+type ReturnStakeTxs struct {
+	ReturnStakes []*ReturnStakeTx `json:"return_stakes"`
 }

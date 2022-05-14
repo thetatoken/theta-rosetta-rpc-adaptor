@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -21,7 +22,9 @@ import (
 )
 
 type blockAPIService struct {
-	client jrpc.RPCClient
+	client       jrpc.RPCClient
+	db           *cmn.LDBDatabase
+	stakeService *cmn.StakeService
 }
 
 type GetBlockArgs struct {
@@ -72,9 +75,11 @@ type GetBlockResultInner struct {
 }
 
 // NewBlockAPIService creates a new instance of an AccountAPIService.
-func NewBlockAPIService(client jrpc.RPCClient) server.BlockAPIServicer {
+func NewBlockAPIService(client jrpc.RPCClient, db *cmn.LDBDatabase, stakeService *cmn.StakeService) server.BlockAPIServicer {
 	return &blockAPIService{
-		client: client,
+		client:       client,
+		db:           db,
+		stakeService: stakeService,
 	}
 }
 
@@ -145,12 +150,25 @@ func (s *blockAPIService) Block(
 					gasUsed = tblock.Txs[i].Receipt.GasUsed
 				}
 
-				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed, tblock.Txs[i].BalanceChanges)
+				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed, tblock.Txs[i].BalanceChanges, s.db, s.stakeService, tblock.Height)
 				txs = append(txs, &tx)
 			}
 		}
 
 		block.Transactions = txs
+
+		// check if there's any stakes that need to be returned at this height
+		returnStakeTxs := cmn.ReturnStakeTxs{}
+		kvstore := cmn.NewKVStore(s.db)
+		if kvstore.Get(new(big.Int).SetUint64(uint64(tblock.Height)).Bytes(), &returnStakeTxs) != nil {
+			for _, tx := range returnStakeTxs.ReturnStakes {
+				transaction := types.Transaction{
+					TransactionIdentifier: &types.TransactionIdentifier{Hash: tx.Hash},
+				}
+				transaction.Metadata, transaction.Operations = cmn.ParseReturnStakeTx(tx.Tx, nil, cmn.WithdrawStakeTx)
+				txs = append(txs, &transaction)
+			}
+		}
 
 		resp := types.BlockResponse{
 			Block: &block,
@@ -210,7 +228,7 @@ func (s *blockAPIService) BlockTransaction(
 			}
 			status := string(txResult.Status)
 			if "not_found" != status {
-				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed, txResult.BalanceChanges)
+				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed, txResult.BalanceChanges, nil, nil, 0)
 				resp.Transaction = &tx
 			}
 		}

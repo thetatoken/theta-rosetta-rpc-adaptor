@@ -2,8 +2,10 @@ package services
 
 import (
 	// "fmt"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -56,8 +58,8 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		cmn.TxOpTypes(),
 		true,
 		[]*types.NetworkIdentifier{
-			&types.NetworkIdentifier{
-				Blockchain: "theta",
+			{
+				Blockchain: cmn.ChainName,
 				Network:    status.ChainID,
 			},
 		},
@@ -68,9 +70,33 @@ func NewThetaRouter(client jrpc.RPCClient) (http.Handler, error) {
 		return nil, err
 	}
 
+	needQueryReturnStakes := false
+	if _, err := os.Stat("/data/return_stakes"); errors.Is(err, os.ErrNotExist) {
+		needQueryReturnStakes = true
+	}
+
+	db, err := cmn.NewLDBDatabase("/data/return_stakes", 64, 0)
+	stakeService := cmn.NewStakeService(client, db)
+
+	// populate kvstore for vcp/gcp/eenp stakes having withdrawn:true
+	if needQueryReturnStakes {
+		stakeService.GenStakesForSnapshot()
+	}
+
+	// //temp
+	// iter := db.NewIterator()
+	// for iter.Next() {
+	// 	key := iter.Key()
+	// 	returnStakeTxs := cmn.ReturnStakeTxs{}
+	// 	kvstore := cmn.NewKVStore(db)
+	// 	kvstore.Get(key, &returnStakeTxs)
+	// }
+	// iter.Release()
+	// err = iter.Error()
+
 	networkAPIController := server.NewNetworkAPIController(NewNetworkAPIService(client), asserter)
 	accountAPIController := server.NewAccountAPIController(NewAccountAPIService(client), asserter)
-	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client), asserter)
+	blockAPIController := server.NewBlockAPIController(NewBlockAPIService(client, db, stakeService), asserter)
 	memPoolAPIController := server.NewMempoolAPIController(NewMemPoolAPIService(client), asserter)
 	constructionAPIController := server.NewConstructionAPIController(NewConstructionAPIService(client), asserter)
 	r := server.NewRouter(networkAPIController, accountAPIController, blockAPIController, memPoolAPIController, constructionAPIController)

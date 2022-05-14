@@ -194,6 +194,11 @@ var (
 		Message: "Endpoint unavailable offline",
 	}
 
+	ErrDBKeyNotFound = &types.Error{
+		Code:    33,
+		Message: "db key not found",
+	}
+
 	ErrorList = []*types.Error{
 		ErrUnableToGetChainID,
 		ErrInvalidBlockchain,
@@ -227,5 +232,6 @@ var (
 		ErrUnableToGetMemPool,
 		ErrUnableToGetMemPoolTx,
 		ErrUnavailableOffline,
+		ErrDBKeyNotFound,
 	}
 )

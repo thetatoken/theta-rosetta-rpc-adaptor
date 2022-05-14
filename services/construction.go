@@ -518,7 +518,7 @@ func (s *constructionAPIService) ConstructionParse(
 	}
 	if request.Signed {
 		resp.AccountIdentifierSigners = []*types.AccountIdentifier{
-			&types.AccountIdentifier{
+			{
 				Address: sender,
 			},
 		}

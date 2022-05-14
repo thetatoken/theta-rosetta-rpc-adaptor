@@ -15,6 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/thetatoken/theta/blockchain"
 	cmn "github.com/thetatoken/theta/common"
+	"github.com/thetatoken/theta/core"
 	"github.com/thetatoken/theta/crypto"
 	"github.com/thetatoken/theta/crypto/bls"
 	ttypes "github.com/thetatoken/theta/ledger/types"
@@ -63,7 +64,7 @@ func HandleThetaRPCResponse(rpcRes *rpcc.RPCResponse, rpcErr error, parse func(j
 
 func ValidateNetworkIdentifier(ctx context.Context, ni *types.NetworkIdentifier) *types.Error {
 	if ni != nil {
-		if !strings.EqualFold(ni.Blockchain, Theta) {
+		if !strings.EqualFold(ni.Blockchain, ChainName) {
 			return ErrInvalidBlockchain
 		}
 		if ni.SubNetworkIdentifier != nil {
@@ -537,74 +538,6 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		ops = append(ops, op)
 		i++
 	}
-
-	// if smartContractTx.From.Coins.ThetaWei != nil && smartContractTx.From.Coins.ThetaWei != big.NewInt(0) {
-	// 	thetaFrom := types.Operation{
-	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
-	// 		Type:                SmartContractTxFrom.String(),
-	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-	// 		Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
-	// 		Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
-	// 	}
-	// 	if status != nil {
-	// 		thetaFrom.Status = status
-	// 	}
-	// 	if i > 0 {
-	// 		thetaFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-	// 	}
-	// 	ops = append(ops, &thetaFrom)
-	// 	i++
-	// }
-	// if smartContractTx.From.Coins.TFuelWei != nil && smartContractTx.From.Coins.TFuelWei != big.NewInt(0) {
-	// 	tfuelFrom := types.Operation{
-	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
-	// 		Type:                SmartContractTxFrom.String(),
-	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-	// 		Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
-	// 		Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
-	// 	}
-	// 	if status != nil {
-	// 		tfuelFrom.Status = status
-	// 	}
-	// 	if i > 0 {
-	// 		tfuelFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-	// 	}
-	// 	ops = append(ops, &tfuelFrom)
-	// 	i++
-	// }
-
-	// if smartContractTx.To.Coins.ThetaWei != nil && smartContractTx.To.Coins.ThetaWei != big.NewInt(0) {
-	// 	thetaTo := types.Operation{
-	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
-	// 		Type:                SmartContractTxTo.String(),
-	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
-	// 		Amount:              &types.Amount{Value: smartContractTx.To.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
-	// 	}
-	// 	if status != nil {
-	// 		thetaTo.Status = status
-	// 	}
-	// 	if i > 0 {
-	// 		thetaTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-	// 	}
-	// 	ops = append(ops, &thetaTo)
-	// 	i++
-	// }
-	// if smartContractTx.To.Coins.TFuelWei != nil && smartContractTx.To.Coins.TFuelWei != big.NewInt(0) {
-	// 	tfuelTo := types.Operation{
-	// 		OperationIdentifier: &types.OperationIdentifier{Index: i},
-	// 		Type:                SmartContractTxTo.String(),
-	// 		Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
-	// 		Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
-	// 	}
-	// 	if status != nil {
-	// 		tfuelTo.Status = status
-	// 	}
-	// 	if i > 0 {
-	// 		tfuelTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-	// 	}
-	// 	ops = append(ops, &tfuelTo)
-	// 	i++
-	// }
 	return
 }
 
@@ -673,37 +606,9 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 		ops = append(ops, tfuelSource)
 		i++
 	}
-	if depositStakeTx.Holder.Coins.ThetaWei != nil && depositStakeTx.Holder.Coins.ThetaWei != big.NewInt(0) {
-		thetaHolder := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                DepositStakeTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: depositStakeTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: depositStakeTx.Holder.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
-		}
-		if status != nil {
-			thetaHolder.Status = status
-		}
-		ops = append(ops, thetaHolder)
-		i++
-	}
-	if depositStakeTx.Holder.Coins.TFuelWei != nil && depositStakeTx.Holder.Coins.TFuelWei != big.NewInt(0) {
-		tfuelHolder := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                DepositStakeTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: depositStakeTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: depositStakeTx.Holder.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
-		}
-		if status != nil {
-			tfuelHolder.Status = status
-		}
-		ops = append(ops, tfuelHolder)
-	}
 	return
 }
 
-// TODO: delayed balance change!
 func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":    txType,
@@ -711,11 +616,8 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 		"purpose": withdrawStakeTx.Purpose,
 	}
 
-	sigBytes, _ := withdrawStakeTx.Source.Signature.MarshalJSON()
-	var i int64
-
 	fee := &types.Operation{
-		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                WithdrawStakeTxFee.String(),
 		Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Source.Address.String()},
 		Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
@@ -724,7 +626,18 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 		fee.Status = status
 	}
 	ops = append(ops, fee)
-	i++
+	return
+}
+
+func ParseReturnStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
+	metadata = map[string]interface{}{
+		"type":    txType,
+		"fee":     withdrawStakeTx.Fee,
+		"purpose": withdrawStakeTx.Purpose,
+	}
+
+	sigBytes, _ := withdrawStakeTx.Source.Signature.MarshalJSON()
+	var i int64
 
 	if withdrawStakeTx.Source.Coins.ThetaWei != nil && withdrawStakeTx.Source.Coins.ThetaWei != big.NewInt(0) {
 		thetaSource := &types.Operation{
@@ -760,34 +673,6 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 		ops = append(ops, tfuelSource)
 		i++
 	}
-
-	if withdrawStakeTx.Holder.Coins.ThetaWei != nil && withdrawStakeTx.Holder.Coins.ThetaWei != big.NewInt(0) {
-		thetaHolder := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                WithdrawStakeTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Holder.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
-		}
-		if status != nil {
-			thetaHolder.Status = status
-		}
-		ops = append(ops, thetaHolder)
-		i++
-	}
-	if withdrawStakeTx.Holder.Coins.TFuelWei != nil && withdrawStakeTx.Holder.Coins.TFuelWei != big.NewInt(0) {
-		tfuelHolder := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                WithdrawStakeTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Holder.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
-		}
-		if status != nil {
-			tfuelHolder.Status = status
-		}
-		ops = append(ops, tfuelHolder)
-	}
 	return
 }
 
@@ -798,41 +683,9 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 		"split_basis_point": stakeRewardDistributionTx.SplitBasisPoint,
 	}
 
-	sigBytes, _ := stakeRewardDistributionTx.Holder.Signature.MarshalJSON()
+	//TODO: fee
+
 	var i int64
-
-	if stakeRewardDistributionTx.Holder.Coins.ThetaWei != nil && stakeRewardDistributionTx.Holder.Coins.ThetaWei != big.NewInt(0) {
-		thetaInput := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                StakeRewardDistributionTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: stakeRewardDistributionTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(stakeRewardDistributionTx.Holder.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
-			Metadata:            map[string]interface{}{"sequence": stakeRewardDistributionTx.Holder.Sequence, "signature": sigBytes},
-		}
-		if status != nil {
-			thetaInput.Status = status
-		}
-		ops = append(ops, thetaInput)
-		i++
-	}
-	if stakeRewardDistributionTx.Holder.Coins.TFuelWei != nil && stakeRewardDistributionTx.Holder.Coins.TFuelWei != big.NewInt(0) {
-		tfuelInput := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                StakeRewardDistributionTxHolder.String(),
-			Account:             &types.AccountIdentifier{Address: stakeRewardDistributionTx.Holder.Address.String()},
-			Amount:              &types.Amount{Value: new(big.Int).Mul(stakeRewardDistributionTx.Holder.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
-			Metadata:            map[string]interface{}{"sequence": stakeRewardDistributionTx.Holder.Sequence, "signature": sigBytes},
-		}
-		if status != nil {
-			tfuelInput.Status = status
-		}
-		if i > 0 {
-			tfuelInput.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, tfuelInput)
-		i++
-	}
-
 	if stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != nil && stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != big.NewInt(0) {
 		thetaOutput := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -863,7 +716,7 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 	return
 }
 
-func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *string, gasUsed uint64, balanceChanges *blockchain.TxBalanceChangesEntry) types.Transaction {
+func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *string, gasUsed uint64, balanceChanges *blockchain.TxBalanceChangesEntry, db *LDBDatabase, stakeService *StakeService, blockHeight cmn.JSONUint64) types.Transaction {
 	transaction := types.Transaction{
 		TransactionIdentifier: &types.TransactionIdentifier{Hash: txHash.String()},
 	}
@@ -909,6 +762,31 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 		withdrawStakeTx := ttypes.WithdrawStakeTx{}
 		json.Unmarshal(rawTx, &withdrawStakeTx)
 		transaction.Metadata, transaction.Operations = ParseWithdrawStakeTx(withdrawStakeTx, status, txType)
+
+		if db != nil && stakeService != nil {
+			// Stakes are returned 28800 blocks later, so store tx in db for later processing
+			// Query gcp/vcp/eenp to get real withdraw amount
+			stake, err := stakeService.GetStakeForTx(withdrawStakeTx, blockHeight)
+			if err != nil {
+				if withdrawStakeTx.Purpose == core.StakeForValidator || withdrawStakeTx.Purpose == core.StakeForGuardian {
+					withdrawStakeTx.Source.Coins = ttypes.Coins{ThetaWei: stake.Amount}
+				} else {
+					withdrawStakeTx.Source.Coins = ttypes.Coins{TFuelWei: stake.Amount}
+				}
+
+				returnStakeTx := &ReturnStakeTx{Hash: txHash.Hex(), Tx: withdrawStakeTx}
+
+				returnStakeTxs := ReturnStakeTxs{}
+				kvstore := NewKVStore(db)
+				heightBytes := new(big.Int).SetUint64(uint64(blockHeight) + core.ReturnLockingPeriod).Bytes()
+				if kvstore.Get(heightBytes, &returnStakeTxs) != nil {
+					returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
+				} else {
+					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
+				}
+				kvstore.Put(heightBytes, returnStakeTxs)
+			}
+		}
 	case StakeRewardDistributionTx:
 		stakeRewardDistributionTx := ttypes.StakeRewardDistributionTx{}
 		json.Unmarshal(rawTx, &stakeRewardDistributionTx)
