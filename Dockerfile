@@ -8,7 +8,7 @@ ENV THETA_HOME=$GOPATH/src/github.com/thetatoken/theta
 
 WORKDIR $THETA_HOME
 
-RUN git clone https://github.com/thetatoken/theta-protocol-ledger.git .
+RUN git clone --branch account_delta https://github.com/thetatoken/theta-protocol-ledger.git .
 
 RUN make install
 
@@ -37,12 +37,11 @@ RUN mkdir -p /app \
   && mkdir -p /data \
   && chown -R nobody:nogroup /data
 
-ENV THETA_HOME=/go/src/github.com/thetatoken/theta
-WORKDIR $THETA_HOME
+WORKDIR /app
 
 COPY --from=service-builder /go/src/github.com/thetatoken/theta/integration ./integration/
 
-RUN mkdir -p ../mainnet/walletnode
+RUN mkdir -p ./mainnet/walletnode
 
 # Copy binary from theta-builder
 COPY --from=service-builder /go/bin/theta /app/theta
