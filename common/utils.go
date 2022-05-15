@@ -249,10 +249,11 @@ func ParseSlashTx(slashTx ttypes.SlashTx, status *string, txType TxType) (metada
 func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type": txType,
-		"fee":  sendTx.Fee.TFuelWei.String(),
+		"fee":  sendTx.Fee,
 	}
 
 	var i int64
+
 	for _, input := range sendTx.Inputs {
 		sigBytes, _ := input.Signature.MarshalJSON()
 
@@ -334,13 +335,13 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 		ops = append(ops, outputOp)
 		i++
 	}
+
 	return
 }
 
 func ParseReserveFundTx(reserveFundTx ttypes.ReserveFundTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":         txType,
-		"fee":          reserveFundTx.Fee,
 		"collateral":   reserveFundTx.Collateral,
 		"resource_ids": reserveFundTx.ResourceIDs,
 		"duration":     reserveFundTx.Duration,
@@ -348,8 +349,9 @@ func ParseReserveFundTx(reserveFundTx ttypes.ReserveFundTx, status *string, txTy
 
 	sigBytes, _ := reserveFundTx.Source.Signature.MarshalJSON()
 	var i int64
+
 	if reserveFundTx.Source.Coins.ThetaWei != nil && reserveFundTx.Source.Coins.ThetaWei != big.NewInt(0) {
-		op := types.Operation{
+		op := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
 			Type:                ReserveFundTxSource.String(),
 			Account:             &types.AccountIdentifier{Address: reserveFundTx.Source.Address.String()},
@@ -359,12 +361,12 @@ func ParseReserveFundTx(reserveFundTx ttypes.ReserveFundTx, status *string, txTy
 		if status != nil {
 			op.Status = status
 		}
-		ops = append(ops, &op)
+		ops = append(ops, op)
 		i++
 	}
 
 	if reserveFundTx.Source.Coins.TFuelWei != nil && reserveFundTx.Source.Coins.TFuelWei != big.NewInt(0) {
-		op := types.Operation{
+		op := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
 			Type:                ReserveFundTxSource.String(),
 			Account:             &types.AccountIdentifier{Address: reserveFundTx.Source.Address.String()},
@@ -374,22 +376,42 @@ func ParseReserveFundTx(reserveFundTx ttypes.ReserveFundTx, status *string, txTy
 		if status != nil {
 			op.Status = status
 		}
-		ops = append(ops, &op)
+		if i > 0 {
+			op.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, op)
+		i++
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: reserveFundTx.Source.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(reserveFundTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 1}},
+	}
+	if status != nil {
+		fee.Status = status
+	}
+	if i > 0 {
+		fee.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	}
+	ops = append(ops, fee)
+
 	return
 }
 
 func ParseReleaseFundTx(releaseFundTx ttypes.ReleaseFundTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":             txType,
-		"fee":              releaseFundTx.Fee,
 		"reserve_sequence": releaseFundTx.ReserveSequence,
 	}
 
 	sigBytes, _ := releaseFundTx.Source.Signature.MarshalJSON()
 	var i int64
+
 	if releaseFundTx.Source.Coins.ThetaWei != nil && releaseFundTx.Source.Coins.ThetaWei != big.NewInt(0) {
-		op := types.Operation{
+		op := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
 			Type:                ReleaseFundTxSource.String(),
 			Account:             &types.AccountIdentifier{Address: releaseFundTx.Source.Address.String()},
@@ -399,11 +421,12 @@ func ParseReleaseFundTx(releaseFundTx ttypes.ReleaseFundTx, status *string, txTy
 		if status != nil {
 			op.Status = status
 		}
-		ops = append(ops, &op)
+		ops = append(ops, op)
 		i++
 	}
+
 	if releaseFundTx.Source.Coins.TFuelWei != nil && releaseFundTx.Source.Coins.TFuelWei != big.NewInt(0) {
-		op := types.Operation{
+		op := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
 			Type:                ReleaseFundTxSource.String(),
 			Account:             &types.AccountIdentifier{Address: releaseFundTx.Source.Address.String()},
@@ -413,65 +436,104 @@ func ParseReleaseFundTx(releaseFundTx ttypes.ReleaseFundTx, status *string, txTy
 		if status != nil {
 			op.Status = status
 		}
-		ops = append(ops, &op)
+		if i > 0 {
+			op.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, op)
+		i++
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: releaseFundTx.Source.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(releaseFundTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 1}},
+	}
+	if status != nil {
+		fee.Status = status
+	}
+	if i > 0 {
+		fee.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	}
+	ops = append(ops, fee)
+
 	return
 }
 
 func ParseServicePaymentTx(servicePaymentTx ttypes.ServicePaymentTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":             txType,
-		"fee":              servicePaymentTx.Fee,
 		"payment_sequence": servicePaymentTx.PaymentSequence,
 		"reserve_sequence": servicePaymentTx.ReserveSequence,
 		"resource_id":      servicePaymentTx.ResourceID,
 	}
 
 	sigBytes, _ := servicePaymentTx.Source.Signature.MarshalJSON()
-	sourceOp := types.Operation{
+
+	sourceOp := &types.Operation{
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                ServicePaymentTxSource.String(),
 		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Source.Address.String()},
 		Amount:              &types.Amount{Value: new(big.Int).Mul(servicePaymentTx.Source.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": servicePaymentTx.Source.Sequence, "signature": sigBytes},
 	}
-	targetOp := types.Operation{
+
+	targetOp := &types.Operation{
 		OperationIdentifier: &types.OperationIdentifier{Index: 1},
-		RelatedOperations:   []*types.OperationIdentifier{{Index: 0}},
 		Type:                ServicePaymentTxTarget.String(),
 		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Target.Address.String()},
 		Amount:              &types.Amount{Value: servicePaymentTx.Target.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
-		// Metadata:            map[string]interface{}{"sequence": servicePaymentTx.Target.Sequence, "signature": servicePaymentTx.Target.Signature},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 0}},
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: 2},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: servicePaymentTx.Target.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(servicePaymentTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 1}},
+	}
+
 	if status != nil {
 		sourceOp.Status = status
 		targetOp.Status = status
+		fee.Status = status
 	}
-	ops = []*types.Operation{&sourceOp, &targetOp}
+	ops = []*types.Operation{sourceOp, targetOp, fee}
 	return
 }
 
 func ParseSplitRuleTx(splitRuleTx ttypes.SplitRuleTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":        txType,
-		"fee":         splitRuleTx.Fee,
 		"resource_id": splitRuleTx.ResourceID,
 		"splits":      splitRuleTx.Splits,
 		"duration":    splitRuleTx.Duration,
 	}
 
 	sigBytes, _ := splitRuleTx.Initiator.Signature.MarshalJSON()
-	op := types.Operation{
+	op := &types.Operation{
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
 		Type:                SplitRuleTxInitiator.String(),
 		Account:             &types.AccountIdentifier{Address: splitRuleTx.Initiator.Address.String()},
 		Amount:              &types.Amount{Value: splitRuleTx.Initiator.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
 		Metadata:            map[string]interface{}{"sequence": splitRuleTx.Initiator.Sequence, "signature": sigBytes},
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: 1},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: splitRuleTx.Initiator.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(splitRuleTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+		RelatedOperations:   []*types.OperationIdentifier{{Index: 0}},
+	}
+
 	if status != nil {
 		op.Status = status
+		fee.Status = status
 	}
-	ops = []*types.Operation{&op}
+	ops = []*types.Operation{op, fee}
 	return
 }
 
@@ -484,21 +546,6 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 	}
 
 	var i int64
-
-	if gasUsed != 0 {
-		txFee := new(big.Int).Mul(new(big.Int).Mul(smartContractTx.GasPrice, new(big.Int).SetUint64(gasUsed)), big.NewInt(-1)).String()
-		fee := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SmartContractTxFee.String(),
-			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
-			Amount:              &types.Amount{Value: txFee, Currency: GetTFuelCurrency()},
-		}
-		if status != nil {
-			fee.Status = status
-		}
-		ops = append(ops, fee)
-		i++
-	}
 
 	for _, balanceChange := range balanceChanges.BalanceChanges {
 		if balanceChange.TokenType > 1 {
@@ -538,13 +585,30 @@ func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string
 		ops = append(ops, op)
 		i++
 	}
+
+	if gasUsed != 0 {
+		txFee := new(big.Int).Mul(new(big.Int).Mul(smartContractTx.GasPrice, new(big.Int).SetUint64(gasUsed)), big.NewInt(-1)).String()
+		fee := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                TxFee.String(),
+			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
+			Amount:              &types.Amount{Value: txFee, Currency: GetTFuelCurrency()},
+		}
+		if status != nil {
+			fee.Status = status
+		}
+		if i > 0 {
+			fee.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, fee)
+	}
+
 	return
 }
 
 func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":    txType,
-		"fee":     depositStakeTx.Fee,
 		"purpose": depositStakeTx.Purpose,
 	}
 	if depositStakeTx.BlsPubkey != nil {
@@ -559,18 +623,6 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 
 	sigBytes, _ := depositStakeTx.Source.Signature.MarshalJSON()
 	var i int64
-
-	fee := &types.Operation{
-		OperationIdentifier: &types.OperationIdentifier{Index: i},
-		Type:                DepositStakeTxFee.String(),
-		Account:             &types.AccountIdentifier{Address: depositStakeTx.Source.Address.String()},
-		Amount:              &types.Amount{Value: new(big.Int).Mul(depositStakeTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
-	}
-	if status != nil {
-		fee.Status = status
-	}
-	ops = append(ops, fee)
-	i++
 
 	if depositStakeTx.Source.Coins.ThetaWei != nil && depositStakeTx.Source.Coins.ThetaWei != big.NewInt(0) {
 		thetaSource := &types.Operation{
@@ -589,6 +641,7 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 		ops = append(ops, thetaSource)
 		i++
 	}
+
 	if depositStakeTx.Source.Coins.TFuelWei != nil && depositStakeTx.Source.Coins.TFuelWei != big.NewInt(0) {
 		tfuelSource := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -606,19 +659,33 @@ func ParseDepositStakeTx(depositStakeTx ttypes.DepositStakeTxV2, status *string,
 		ops = append(ops, tfuelSource)
 		i++
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: depositStakeTx.Source.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(depositStakeTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+	}
+	if status != nil {
+		fee.Status = status
+	}
+	if i > 0 {
+		fee.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	}
+	ops = append(ops, fee)
+
 	return
 }
 
 func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":    txType,
-		"fee":     withdrawStakeTx.Fee,
 		"purpose": withdrawStakeTx.Purpose,
 	}
 
 	fee := &types.Operation{
 		OperationIdentifier: &types.OperationIdentifier{Index: 0},
-		Type:                WithdrawStakeTxFee.String(),
+		Type:                TxFee.String(),
 		Account:             &types.AccountIdentifier{Address: withdrawStakeTx.Source.Address.String()},
 		Amount:              &types.Amount{Value: new(big.Int).Mul(withdrawStakeTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
 	}
@@ -632,7 +699,6 @@ func ParseWithdrawStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string
 func ParseReturnStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":    txType,
-		"fee":     withdrawStakeTx.Fee,
 		"purpose": withdrawStakeTx.Purpose,
 	}
 
@@ -656,6 +722,7 @@ func ParseReturnStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, 
 		ops = append(ops, thetaSource)
 		i++
 	}
+
 	if withdrawStakeTx.Source.Coins.TFuelWei != nil && withdrawStakeTx.Source.Coins.TFuelWei != big.NewInt(0) {
 		tfuelSource := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -671,21 +738,19 @@ func ParseReturnStakeTx(withdrawStakeTx ttypes.WithdrawStakeTx, status *string, 
 			tfuelSource.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
 		}
 		ops = append(ops, tfuelSource)
-		i++
 	}
+
 	return
 }
 
 func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeRewardDistributionTx, status *string, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":              txType,
-		"fee":               stakeRewardDistributionTx.Fee,
 		"split_basis_point": stakeRewardDistributionTx.SplitBasisPoint,
 	}
 
-	//TODO: fee
-
 	var i int64
+
 	if stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != nil && stakeRewardDistributionTx.Beneficiary.Coins.ThetaWei != big.NewInt(0) {
 		thetaOutput := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -697,9 +762,13 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 		if status != nil {
 			thetaOutput.Status = status
 		}
+		if i > 0 {
+			thetaOutput.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
 		ops = append(ops, thetaOutput)
 		i++
 	}
+
 	if stakeRewardDistributionTx.Beneficiary.Coins.TFuelWei != nil && stakeRewardDistributionTx.Beneficiary.Coins.TFuelWei != big.NewInt(0) {
 		tfuelOutput := &types.Operation{
 			OperationIdentifier: &types.OperationIdentifier{Index: i},
@@ -711,8 +780,27 @@ func ParseStakeRewardDistributionTx(stakeRewardDistributionTx ttypes.StakeReward
 		if status != nil {
 			tfuelOutput.Status = status
 		}
+		if i > 0 {
+			tfuelOutput.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
 		ops = append(ops, tfuelOutput)
+		i++
 	}
+
+	fee := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: stakeRewardDistributionTx.Holder.Address.String()},
+		Amount:              &types.Amount{Value: new(big.Int).Mul(stakeRewardDistributionTx.Fee.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+	}
+	if status != nil {
+		fee.Status = status
+	}
+	if i > 0 {
+		fee.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	}
+	ops = append(ops, fee)
+
 	return
 }
 

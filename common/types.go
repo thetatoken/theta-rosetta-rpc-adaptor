@@ -98,7 +98,6 @@ const (
 	CoinbaseTxProposer TxOpType = iota
 	CoinbaseTxOutput
 	SlashTxProposer
-	SendTxFee
 	SendTxInput
 	SendTxOutput
 	ReserveFundTxSource
@@ -108,15 +107,13 @@ const (
 	SplitRuleTxInitiator
 	SmartContractTxFrom
 	SmartContractTxTo
-	SmartContractTxFee
 	DepositStakeTxSource
 	DepositStakeTxHolder
-	DepositStakeTxFee
 	WithdrawStakeTxSource
 	WithdrawStakeTxHolder
-	WithdrawStakeTxFee
 	StakeRewardDistributionTxHolder
 	StakeRewardDistributionTxBeneficiary
+	TxFee
 )
 
 func (t TxOpType) String() string {
@@ -124,7 +121,6 @@ func (t TxOpType) String() string {
 		"CoinbaseTxProposer",
 		"CoinbaseTxOutput",
 		"SlashTxProposer",
-		"SendTxFee",
 		"SendTxInput",
 		"SendTxOutput",
 		"ReserveFundTxSource",
@@ -134,15 +130,13 @@ func (t TxOpType) String() string {
 		"SplitRuleTxInitiator",
 		"SmartContractTxFrom",
 		"SmartContractTxTo",
-		"SmartContractTxFee",
 		"DepositStakeTxSource",
 		"DepositStakeTxHolder",
-		"DepositStakeTxFee",
 		"WithdrawStakeTxSource",
 		"WithdrawStakeTxHolder",
-		"WithdrawStakeTxFee",
 		"StakeRewardDistributionTxHolder",
 		"StakeRewardDistributionTxBeneficiary",
+		"TxFee",
 	}[t]
 }
 
@@ -151,7 +145,6 @@ func TxOpTypes() []string {
 		"CoinbaseTxProposer",
 		"CoinbaseTxOutput",
 		"SlashTxProposer",
-		"SendTxFee",
 		"SendTxInput",
 		"SendTxOutput",
 		"ReserveFundTxSource",
@@ -161,15 +154,13 @@ func TxOpTypes() []string {
 		"SplitRuleTxInitiator",
 		"SmartContractTxFrom",
 		"SmartContractTxTo",
-		"SmartContractTxFee",
 		"DepositStakeTxSource",
 		"DepositStakeTxHolder",
-		"DepositStakeTxFee",
 		"WithdrawStakeTxSource",
 		"WithdrawStakeTxHolder",
-		"WithdrawStakeTxFee",
 		"StakeRewardDistributionTxHolder",
 		"StakeRewardDistributionTxBeneficiary",
+		"TxFee",
 	}
 }
 
