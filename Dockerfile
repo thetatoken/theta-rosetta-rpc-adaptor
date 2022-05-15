@@ -4,7 +4,7 @@
 FROM golang:1.14.1 as service-builder
 
 ENV GO111MODULE=on
-ENV THETA_HOME=$GOPATH/src/github.com/thetatoken/theta
+ENV THETA_HOME=/go/src/github.com/thetatoken/theta
 
 WORKDIR $THETA_HOME
 
@@ -15,7 +15,7 @@ RUN make install
 # ------------------------------------------------------------------------------
 # Build Theta Rosetta
 # ------------------------------------------------------------------------------
-ENV ROSETTA_HOME=$GOPATH/src/github.com/thetatoken/theta-rosetta-rpc-adaptor
+ENV ROSETTA_HOME=/go/src/github.com/thetatoken/theta-rosetta-rpc-adaptor
 
 WORKDIR $ROSETTA_HOME
 
@@ -60,6 +60,7 @@ RUN chmod -R 755 /app/*
 
 EXPOSE 8080
 EXPOSE 15872
+EXPOSE 16888
 EXPOSE 21000
 EXPOSE 30001
 
