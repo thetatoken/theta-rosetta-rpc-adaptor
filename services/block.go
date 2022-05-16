@@ -206,15 +206,6 @@ func (s *blockAPIService) BlockTransaction(
 		txResult := GetTransactionResult{}
 		json.Unmarshal(jsonBytes, &txResult)
 
-		if txResult.Tx == nil {
-			return nil, fmt.Errorf(cmn.ErrUnableToGetTxns.Message)
-		}
-
-		var gasUsed uint64
-		if txResult.Receipt != nil {
-			gasUsed = txResult.Receipt.GasUsed
-		}
-
 		resp := types.BlockTransactionResponse{}
 
 		var objMap map[string]json.RawMessage
@@ -222,10 +213,12 @@ func (s *blockAPIService) BlockTransaction(
 		if objMap["transaction"] != nil {
 			var rawTx json.RawMessage
 			json.Unmarshal(objMap["transaction"], &rawTx)
-			_, err := ttypes.TxFromBytes(rawTx)
-			if err != nil {
-				return nil, fmt.Errorf("invalid transaction format: " + err.Error())
+
+			var gasUsed uint64
+			if txResult.Receipt != nil {
+				gasUsed = txResult.Receipt.GasUsed
 			}
+
 			status := string(txResult.Status)
 			if "not_found" != status {
 				tx := cmn.ParseTx(cmn.TxType(txResult.Type), rawTx, txResult.TxHash, &status, gasUsed, txResult.BalanceChanges, nil, nil, 0)
