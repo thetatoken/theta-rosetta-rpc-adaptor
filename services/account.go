@@ -118,9 +118,9 @@ func (s *accountAPIService) AccountBalance(
 		var needTheta, needTFuel bool
 		if request.Currencies != nil {
 			for _, currency := range request.Currencies {
-				if strings.EqualFold(currency.Symbol, ttypes.DenomThetaWei) {
+				if strings.EqualFold(currency.Symbol, cmn.GetThetaCurrency().Symbol) {
 					needTheta = true
-				} else if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
+				} else if strings.EqualFold(currency.Symbol, cmn.GetTFuelCurrency().Symbol) {
 					needTFuel = true
 				}
 			}
@@ -180,7 +180,7 @@ func (s *accountAPIService) AccountCoins(
 		resp.BlockIdentifier = blockIdentifier
 
 		var thetaCoin types.Coin
-		thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomThetaWei}
+		thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: cmn.GetThetaCurrency().Symbol}
 		var thetaBalance types.Amount
 		thetaBalance.Value = "0"
 		thetaBalance.Currency = cmn.GetThetaCurrency()
@@ -188,7 +188,7 @@ func (s *accountAPIService) AccountCoins(
 		resp.Coins = append(resp.Coins, &thetaCoin)
 
 		var tfuelCoin types.Coin
-		tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomTFuelWei}
+		tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: cmn.GetTFuelCurrency().Symbol}
 		var tfuelBalance types.Amount
 		tfuelBalance.Value = "0"
 		tfuelBalance.Currency = cmn.GetTFuelCurrency()
@@ -209,9 +209,9 @@ func (s *accountAPIService) AccountCoins(
 		var needTheta, needTFuel bool
 		if request.Currencies != nil {
 			for _, currency := range request.Currencies {
-				if strings.EqualFold(currency.Symbol, ttypes.DenomThetaWei) {
+				if strings.EqualFold(currency.Symbol, cmn.GetThetaCurrency().Symbol) {
 					needTheta = true
-				} else if strings.EqualFold(currency.Symbol, ttypes.DenomTFuelWei) {
+				} else if strings.EqualFold(currency.Symbol, cmn.GetTFuelCurrency().Symbol) {
 					needTFuel = true
 				}
 			}
@@ -222,7 +222,7 @@ func (s *accountAPIService) AccountCoins(
 
 		if needTheta {
 			var thetaCoin types.Coin
-			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomThetaWei}
+			thetaCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: cmn.GetThetaCurrency().Symbol}
 			var thetaBalance types.Amount
 			thetaBalance.Value = account.Balance.ThetaWei.String()
 			thetaBalance.Currency = cmn.GetThetaCurrency()
@@ -232,7 +232,7 @@ func (s *accountAPIService) AccountCoins(
 
 		if needTFuel {
 			var tfuelCoin types.Coin
-			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: ttypes.DenomTFuelWei}
+			tfuelCoin.CoinIdentifier = &types.CoinIdentifier{Identifier: cmn.GetTFuelCurrency().Symbol}
 			var tfuelBalance types.Amount
 			tfuelBalance.Value = account.Balance.TFuelWei.String()
 			tfuelBalance.Currency = cmn.GetTFuelCurrency()

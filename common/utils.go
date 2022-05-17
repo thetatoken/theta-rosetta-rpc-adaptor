@@ -957,9 +957,9 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 			for _, op := range ops {
 				coin := new(big.Int)
 				coin.SetString(op.Amount.Value, 10)
-				if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomThetaWei) {
+				if strings.EqualFold(op.Amount.Currency.Symbol, GetThetaCurrency().Symbol) {
 					input.Coins.ThetaWei = coin
-				} else if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomTFuelWei) {
+				} else if strings.EqualFold(op.Amount.Currency.Symbol, GetTFuelCurrency().Symbol) {
 					input.Coins.TFuelWei = coin
 				}
 			}
@@ -972,9 +972,9 @@ func AssembleTx(ops []*types.Operation, meta map[string]interface{}) (tx ttypes.
 			for _, op := range ops {
 				coin := new(big.Int)
 				coin.SetString(op.Amount.Value, 10)
-				if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomThetaWei) {
+				if strings.EqualFold(op.Amount.Currency.Symbol, GetThetaCurrency().Symbol) {
 					output.Coins.ThetaWei = coin
-				} else if strings.ToLower(op.Amount.Currency.Symbol) == strings.ToLower(ttypes.DenomTFuelWei) {
+				} else if strings.EqualFold(op.Amount.Currency.Symbol, GetTFuelCurrency().Symbol) {
 					output.Coins.TFuelWei = coin
 				}
 			}

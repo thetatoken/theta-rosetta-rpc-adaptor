@@ -384,12 +384,9 @@ func (s *constructionAPIService) ConstructionMetadata(
 	return &types.ConstructionMetadataResponse{
 		Metadata: meta,
 		SuggestedFee: []*types.Amount{
-			&types.Amount{
-				Value: suggestedFee.String(),
-				Currency: &types.Currency{
-					Symbol:   ttypes.DenomTFuelWei,
-					Decimals: cmn.CoinDecimals,
-				},
+			{
+				Value:    suggestedFee.String(),
+				Currency: cmn.GetTFuelCurrency(),
 			},
 		},
 	}, nil
@@ -423,7 +420,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 	return &types.ConstructionPayloadsResponse{
 		UnsignedTransaction: unsignedTx,
 		Payloads: []*types.SigningPayload{
-			&types.SigningPayload{
+			{
 				AccountIdentifier: &types.AccountIdentifier{
 					Address: request.Operations[0].Account.Address,
 				},
