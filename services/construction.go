@@ -59,6 +59,12 @@ func (s *constructionAPIService) ConstructionDerive(
 		return nil, terr
 	}
 
+	if request.PublicKey == nil {
+		terr := cmn.ErrInvalidInputParam
+		terr.Message += "public key is not provided"
+		return nil, terr
+	}
+
 	if len(request.PublicKey.Bytes) == 0 || request.PublicKey.CurveType != CurveType {
 		terr := cmn.ErrInvalidInputParam
 		terr.Message += "unsupported public key curve type"
@@ -239,9 +245,8 @@ func (s *constructionAPIService) ConstructionMetadata(
 	var status *cmn.GetStatusResult
 	var suggestedFee *big.Int
 
-	if fee, ok := meta["fee"]; ok {
-		suggestedFee = new(big.Int)
-		suggestedFee.SetUint64(fee.(uint64))
+	if fee, ok := request.Options["fee"]; ok {
+		suggestedFee = new(big.Int).SetUint64(fee.(uint64))
 	} else {
 		status, err = cmn.GetStatus(s.client)
 		if err != nil {
