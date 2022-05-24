@@ -155,8 +155,6 @@ func (s *blockAPIService) Block(
 			}
 		}
 
-		block.Transactions = txs
-
 		// check if there's any stakes that need to be returned at this height
 		returnStakeTxs := cmn.ReturnStakeTxs{}
 		kvstore := cmn.NewKVStore(s.db)
@@ -169,6 +167,8 @@ func (s *blockAPIService) Block(
 				txs = append(txs, &transaction)
 			}
 		}
+
+		block.Transactions = txs
 
 		resp := types.BlockResponse{
 			Block: &block,
