@@ -161,7 +161,7 @@ func (s *blockAPIService) Block(
 		if kvstore.Get(new(big.Int).SetUint64(uint64(tblock.Height)).Bytes(), &returnStakeTxs) == nil {
 			for _, tx := range returnStakeTxs.ReturnStakes {
 				transaction := types.Transaction{
-					TransactionIdentifier: &types.TransactionIdentifier{Hash: tx.Hash},
+					TransactionIdentifier: &types.TransactionIdentifier{Hash: tblock.Hash.Hex()},
 				}
 				transaction.Metadata, transaction.Operations = cmn.ParseReturnStakeTx(tx.Tx, nil, cmn.WithdrawStakeTx)
 				txs = append(txs, &transaction)
