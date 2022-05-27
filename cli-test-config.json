@@ -1,10 +1,10 @@
 {
     "network": {
         "blockchain": "theta",
-        "network": "testnet"
+        "network": "mainnet"
     },
     "online_url": "http://localhost:8080",
-    "data_directory": "",
+    "data_directory": "data",
     "http_timeout": 300,
     "max_retries": 15,
     "max_online_connections": 500,
@@ -23,7 +23,7 @@
         }
     },
     "data": {
-        "start_index": 15635387,
+        "start_index": 15560300,
         "reconciliation_disabled": false,
         "balance_tracking_disabled": false,
         "log_blocks": false,
