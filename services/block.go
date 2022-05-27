@@ -155,15 +155,15 @@ func (s *blockAPIService) Block(
 			}
 		}
 
-		// check if there's any stakes that need to be returned at this height
+		// check if there's any stakes that need to be returned at this height (off-by-one)
 		returnStakeTxs := cmn.ReturnStakeTxs{}
 		kvstore := cmn.NewKVStore(s.db)
-		if kvstore.Get(new(big.Int).SetUint64(uint64(tblock.Height)).Bytes(), &returnStakeTxs) == nil {
+		if kvstore.Get(new(big.Int).SetUint64(uint64(tblock.Height-1)).Bytes(), &returnStakeTxs) == nil {
 			for _, tx := range returnStakeTxs.ReturnStakes {
 				transaction := types.Transaction{
 					TransactionIdentifier: &types.TransactionIdentifier{Hash: tblock.Hash.Hex()},
 				}
-				transaction.Metadata, transaction.Operations = cmn.ParseReturnStakeTx(tx.Tx, nil, cmn.WithdrawStakeTx)
+				transaction.Metadata, transaction.Operations = cmn.ParseReturnStakeTx(tx.Tx, &status, cmn.WithdrawStakeTx)
 				txs = append(txs, &transaction)
 			}
 		}
