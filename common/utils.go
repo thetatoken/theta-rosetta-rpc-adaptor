@@ -257,83 +257,85 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 	for _, input := range sendTx.Inputs {
 		sigBytes, _ := input.Signature.MarshalJSON()
 
-		thetaWei := "0"
 		if input.Coins.ThetaWei != nil {
-			thetaWei = new(big.Int).Mul(input.Coins.ThetaWei, big.NewInt(-1)).String()
+			thetaWei := new(big.Int).Mul(input.Coins.ThetaWei, big.NewInt(-1)).String()
+			if thetaWei != "0" {
+				inputOp := &types.Operation{
+					OperationIdentifier: &types.OperationIdentifier{Index: i},
+					Type:                SendTxInput.String(),
+					Account:             &types.AccountIdentifier{Address: input.Address.String()},
+					Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
+					Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+				}
+				if status != nil {
+					inputOp.Status = status
+				}
+				if i > 0 {
+					inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+				}
+				ops = append(ops, inputOp)
+				i++
+			}
 		}
-		inputOp := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SendTxInput.String(),
-			Account:             &types.AccountIdentifier{Address: input.Address.String()},
-			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
-		}
-		if status != nil {
-			inputOp.Status = status
-		}
-		if i > 0 {
-			inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, inputOp)
-		i++
 
-		tfuelWei := "0"
 		if input.Coins.TFuelWei != nil {
-			tfuelWei = new(big.Int).Mul(input.Coins.TFuelWei, big.NewInt(-1)).String()
+			tfuelWei := new(big.Int).Mul(input.Coins.TFuelWei, big.NewInt(-1)).String()
+			if tfuelWei != "0" {
+				inputOp := &types.Operation{
+					OperationIdentifier: &types.OperationIdentifier{Index: i},
+					Type:                SendTxInput.String(),
+					Account:             &types.AccountIdentifier{Address: input.Address.String()},
+					Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
+					Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+				}
+				if status != nil {
+					inputOp.Status = status
+				}
+				if i > 0 {
+					inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+				}
+				ops = append(ops, inputOp)
+				i++
+			}
 		}
-		inputOp = &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			Type:                SendTxInput.String(),
-			Account:             &types.AccountIdentifier{Address: input.Address.String()},
-			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
-		}
-		if status != nil {
-			inputOp.Status = status
-		}
-		if i > 0 {
-			inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-		}
-		ops = append(ops, inputOp)
-		i++
 	}
 
 	for _, output := range sendTx.Outputs {
-		thetaWei := "0"
 		if output.Coins.ThetaWei != nil {
-			thetaWei = output.Coins.ThetaWei.String()
+			thetaWei := output.Coins.ThetaWei.String()
+			if thetaWei != "0" {
+				outputOp := &types.Operation{
+					OperationIdentifier: &types.OperationIdentifier{Index: i},
+					RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
+					Type:                SendTxOutput.String(),
+					Account:             &types.AccountIdentifier{Address: output.Address.String()},
+					Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
+				}
+				if status != nil {
+					outputOp.Status = status
+				}
+				ops = append(ops, outputOp)
+				i++
+			}
 		}
 
-		outputOp := &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                SendTxOutput.String(),
-			Account:             &types.AccountIdentifier{Address: output.Address.String()},
-			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-		}
-		if status != nil {
-			outputOp.Status = status
-		}
-		ops = append(ops, outputOp)
-		i++
-
-		tfuelWei := "0"
 		if output.Coins.TFuelWei != nil {
-			tfuelWei = output.Coins.TFuelWei.String()
+			tfuelWei := output.Coins.TFuelWei.String()
+			if tfuelWei != "0" {
+				outputOp := &types.Operation{
+					OperationIdentifier: &types.OperationIdentifier{Index: i},
+					RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
+					Type:                SendTxOutput.String(),
+					Account:             &types.AccountIdentifier{Address: output.Address.String()},
+					Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
+				}
+				if status != nil {
+					outputOp.Status = status
+				}
+				ops = append(ops, outputOp)
+				i++
+			}
 		}
-
-		outputOp = &types.Operation{
-			OperationIdentifier: &types.OperationIdentifier{Index: i},
-			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-			Type:                SendTxOutput.String(),
-			Account:             &types.AccountIdentifier{Address: output.Address.String()},
-			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-		}
-		if status != nil {
-			outputOp.Status = status
-		}
-		ops = append(ops, outputOp)
-		i++
 	}
 
 	return
