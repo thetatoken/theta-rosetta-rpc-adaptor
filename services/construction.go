@@ -104,6 +104,32 @@ func (s *constructionAPIService) ConstructionPreprocess(
 		return nil, e
 	}
 
+	if len(matches) == 5 { // SendTx
+		fromThetaOp, _ := matches[0].First()
+		fromTFuelOp, _ := matches[1].First()
+		toThetaOp, _ := matches[2].First()
+		toTFuelOp, _ := matches[3].First()
+		feeOp, _ := matches[4].First()
+
+		if fromThetaOp.Account.Address != fromTFuelOp.Account.Address || fromTFuelOp.Account.Address != feeOp.Account.Address {
+			terr := cmn.ErrServiceInternal
+			terr.Message += "from address not matching"
+			return nil, terr
+		}
+
+		if toThetaOp.Account.Address != toTFuelOp.Account.Address {
+			terr := cmn.ErrServiceInternal
+			terr.Message += "to address not matching"
+			return nil, terr
+		}
+
+		if fromTFuelOp.Account.Address == toTFuelOp.Account.Address {
+			terr := cmn.ErrServiceInternal
+			terr.Message += "from and to accounts are the same"
+			return nil, terr
+		}
+	}
+
 	fromOp, _ := matches[0].First()
 	options["signer"] = fromOp.Account.Address
 
@@ -198,16 +224,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 				return nil, terr
 			}
 			height := uint64(status.CurrentHeight)
-
-			suggestedFee = ttypes.GetMinimumTransactionFeeTFuelWei(height)
-
-			// if feeMultiplier, ok := request.Options["fee_multiplier"]; ok {
-			// 	suggestedFee = ttypes.GetSendTxMinimumTransactionFeeTFuelWei(uint64(feeMultiplier.(float64)), height)
-			// } else {
-			// 	terr := cmn.ErrInvalidInputParam
-			// 	terr.Message += "missing fee multiplier for send tx"
-			// 	return nil, terr
-			// }
+			suggestedFee = ttypes.GetSendTxMinimumTransactionFeeTFuelWei(2, height) // only allow 1-to-1 transfer
 		}
 		meta["fee"] = suggestedFee
 	} else if cmn.TxType(txType.(float64)) == cmn.SmartContractTx {
@@ -345,22 +362,10 @@ func (s *constructionAPIService) ConstructionPayloads(
 
 	} else if len(request.Operations) == 5 { // SendTx
 		fromThetaOp, fromThetaWei := matches[0].First()
-		fromTFuelOp, fromTFuelWei := matches[1].First()
+		_, fromTFuelWei := matches[1].First()
 		toThetaOp, toThetaWei := matches[2].First()
-		toTFuelOp, toTFuelWei := matches[3].First()
-		feeOp, feeWei := matches[4].First() // TODO: overwritten with request.Metadata["fee"] ?
-
-		if fromThetaOp.Account.Address != fromTFuelOp.Account.Address || fromTFuelOp.Account.Address != feeOp.Account.Address {
-			terr := cmn.ErrServiceInternal
-			terr.Message += "from address not matching"
-			return nil, terr
-		}
-
-		if toThetaOp.Account.Address != toTFuelOp.Account.Address {
-			terr := cmn.ErrServiceInternal
-			terr.Message += "to address not matching"
-			return nil, terr
-		}
+		_, toTFuelWei := matches[3].First()
+		_, feeWei := matches[4].First() // TODO: overwritten with request.Metadata["fee"] ?
 
 		inputs := []ttypes.TxInput{
 			{
@@ -375,7 +380,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 
 		outputs := []ttypes.TxOutput{
 			{
-				Address: common.HexToAddress(fromThetaOp.Account.Address),
+				Address: common.HexToAddress(toThetaOp.Account.Address),
 				Coins: ttypes.Coins{
 					ThetaWei: toThetaWei,
 					TFuelWei: toTFuelWei,
