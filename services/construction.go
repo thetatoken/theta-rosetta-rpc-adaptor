@@ -104,12 +104,14 @@ func (s *constructionAPIService) ConstructionPreprocess(
 		return nil, e
 	}
 
-	if len(matches) == 5 { // SendTx
+	if len(matches) == 2 {
+		options["type"] = cmn.SmartContractTx
+	} else if len(matches) == 5 { // SendTx
 		fromThetaOp, _ := matches[0].First()
 		fromTFuelOp, _ := matches[1].First()
 		toThetaOp, _ := matches[2].First()
 		toTFuelOp, _ := matches[3].First()
-		feeOp, _ := matches[4].First()
+		feeOp, feeWei := matches[4].First()
 
 		if fromThetaOp.Account.Address != fromTFuelOp.Account.Address || fromTFuelOp.Account.Address != feeOp.Account.Address {
 			terr := cmn.ErrServiceInternal
@@ -128,18 +130,17 @@ func (s *constructionAPIService) ConstructionPreprocess(
 			terr.Message += "from and to accounts are the same"
 			return nil, terr
 		}
+
+		options["type"] = cmn.SendTx
+		options["fee"] = feeWei
+	} else {
+		err := cmn.ErrServiceInternal
+		err.Message += "invalid number of operations"
+		return nil, err
 	}
 
 	fromOp, _ := matches[0].First()
 	options["signer"] = fromOp.Account.Address
-
-	if len(matches) == 2 {
-		options["type"] = cmn.SmartContractTx
-	} else if len(matches) == 5 {
-		options["type"] = cmn.SendTx
-		_, feeWei := matches[4].First()
-		options["fee"] = feeWei
-	}
 
 	if gasLimit, ok := request.Metadata["gas_limit"]; ok {
 		options["gas_limit"] = gasLimit
@@ -214,7 +215,7 @@ func (s *constructionAPIService) ConstructionMetadata(
 
 	if cmn.TxType(txType.(float64)) == cmn.SendTx {
 		if fee, ok := request.Options["fee"]; ok {
-			suggestedFee = new(big.Int).SetUint64(fee.(uint64))
+			suggestedFee = new(big.Int).SetUint64(uint64(fee.(float64)))
 		}
 		if suggestedFee.Cmp(big.NewInt(0)) == 0 {
 			status, err = cmn.GetStatus(s.client)
@@ -367,6 +368,10 @@ func (s *constructionAPIService) ConstructionPayloads(
 		_, toTFuelWei := matches[3].First()
 		_, feeWei := matches[4].First() // TODO: overwritten with request.Metadata["fee"] ?
 
+		fromThetaWei = new(big.Int).Mul(fromThetaWei, big.NewInt(-1))
+		fromTFuelWei = new(big.Int).Mul(fromTFuelWei, big.NewInt(-1))
+		feeWei = new(big.Int).Mul(feeWei, big.NewInt(-1))
+
 		inputs := []ttypes.TxInput{
 			{
 				Address: common.HexToAddress(fromThetaOp.Account.Address),
@@ -396,7 +401,6 @@ func (s *constructionAPIService) ConstructionPayloads(
 			Inputs:  inputs,
 			Outputs: outputs,
 		}
-
 	} else {
 		err := cmn.ErrServiceInternal
 		err.Message += "invalid number of operations"

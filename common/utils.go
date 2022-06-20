@@ -253,90 +253,110 @@ func ParseSendTx(sendTx ttypes.SendTx, status *string, txType TxType) (metadata 
 	}
 
 	var i int64
+	var inputAddr string
 
 	for _, input := range sendTx.Inputs {
 		sigBytes, _ := input.Signature.MarshalJSON()
+		inputAddr = input.Address.String()
 
-		if input.Coins.ThetaWei != nil {
-			thetaWei := new(big.Int).Mul(input.Coins.ThetaWei, big.NewInt(-1)).String()
-			if thetaWei != "0" {
-				inputOp := &types.Operation{
-					OperationIdentifier: &types.OperationIdentifier{Index: i},
-					Type:                SendTxInput.String(),
-					Account:             &types.AccountIdentifier{Address: input.Address.String()},
-					Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-					Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
-				}
-				if status != nil {
-					inputOp.Status = status
-				}
-				if i > 0 {
-					inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-				}
-				ops = append(ops, inputOp)
-				i++
-			}
+		if input.Coins.ThetaWei == nil {
+			input.Coins.ThetaWei = big.NewInt(0)
 		}
+		thetaWei := new(big.Int).Mul(input.Coins.ThetaWei, big.NewInt(-1)).String()
+		thetaInputOp := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SendTxInput.String(),
+			Account:             &types.AccountIdentifier{Address: input.Address.String()},
+			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
+			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+		}
+		if status != nil {
+			thetaInputOp.Status = status
+		}
+		if i > 0 {
+			thetaInputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, thetaInputOp)
+		i++
 
-		if input.Coins.TFuelWei != nil {
-			tfuelWei := new(big.Int).Mul(input.Coins.TFuelWei, big.NewInt(-1)).String()
-			if tfuelWei != "0" {
-				inputOp := &types.Operation{
-					OperationIdentifier: &types.OperationIdentifier{Index: i},
-					Type:                SendTxInput.String(),
-					Account:             &types.AccountIdentifier{Address: input.Address.String()},
-					Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-					Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
-				}
-				if status != nil {
-					inputOp.Status = status
-				}
-				if i > 0 {
-					inputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
-				}
-				ops = append(ops, inputOp)
-				i++
-			}
+		if input.Coins.TFuelWei == nil {
+			input.Coins.TFuelWei = big.NewInt(0)
 		}
+		tfuelInput := new(big.Int).Sub(input.Coins.TFuelWei, sendTx.Fee.TFuelWei)
+		tfuelWei := new(big.Int).Mul(tfuelInput, big.NewInt(-1)).String()
+		tfuelInputOp := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SendTxInput.String(),
+			Account:             &types.AccountIdentifier{Address: input.Address.String()},
+			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
+			Metadata:            map[string]interface{}{"sequence": input.Sequence, "signature": sigBytes},
+		}
+		if status != nil {
+			tfuelInputOp.Status = status
+		}
+		if i > 0 {
+			tfuelInputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, tfuelInputOp)
+		i++
 	}
 
 	for _, output := range sendTx.Outputs {
-		if output.Coins.ThetaWei != nil {
-			thetaWei := output.Coins.ThetaWei.String()
-			if thetaWei != "0" {
-				outputOp := &types.Operation{
-					OperationIdentifier: &types.OperationIdentifier{Index: i},
-					RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-					Type:                SendTxOutput.String(),
-					Account:             &types.AccountIdentifier{Address: output.Address.String()},
-					Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
-				}
-				if status != nil {
-					outputOp.Status = status
-				}
-				ops = append(ops, outputOp)
-				i++
-			}
+		if output.Coins.ThetaWei == nil {
+			output.Coins.ThetaWei = big.NewInt(0)
 		}
+		thetaWei := output.Coins.ThetaWei.String()
+		thetaOutputOp := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
+			Type:                SendTxOutput.String(),
+			Account:             &types.AccountIdentifier{Address: output.Address.String()},
+			Amount:              &types.Amount{Value: thetaWei, Currency: GetThetaCurrency()},
+		}
+		if status != nil {
+			thetaOutputOp.Status = status
+		}
+		if i > 0 {
+			thetaOutputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, thetaOutputOp)
+		i++
 
-		if output.Coins.TFuelWei != nil {
-			tfuelWei := output.Coins.TFuelWei.String()
-			if tfuelWei != "0" {
-				outputOp := &types.Operation{
-					OperationIdentifier: &types.OperationIdentifier{Index: i},
-					RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
-					Type:                SendTxOutput.String(),
-					Account:             &types.AccountIdentifier{Address: output.Address.String()},
-					Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
-				}
-				if status != nil {
-					outputOp.Status = status
-				}
-				ops = append(ops, outputOp)
-				i++
-			}
+		if output.Coins.TFuelWei == nil {
+			output.Coins.TFuelWei = big.NewInt(0)
 		}
+		tfuelWei := output.Coins.TFuelWei.String()
+		tfuelOutputOp := &types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			RelatedOperations:   []*types.OperationIdentifier{{Index: i - 1}},
+			Type:                SendTxOutput.String(),
+			Account:             &types.AccountIdentifier{Address: output.Address.String()},
+			Amount:              &types.Amount{Value: tfuelWei, Currency: GetTFuelCurrency()},
+		}
+		if status != nil {
+			tfuelOutputOp.Status = status
+		}
+		if i > 0 {
+			tfuelOutputOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, tfuelOutputOp)
+		i++
 	}
+
+	fee := new(big.Int).Mul(sendTx.Fee.TFuelWei, big.NewInt(-1)).String()
+	feeOp := &types.Operation{
+		OperationIdentifier: &types.OperationIdentifier{Index: i},
+		Type:                TxFee.String(),
+		Account:             &types.AccountIdentifier{Address: inputAddr},
+		Amount:              &types.Amount{Value: fee, Currency: GetTFuelCurrency()},
+	}
+	if status != nil {
+		feeOp.Status = status
+	}
+	if i > 0 {
+		feeOp.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+	}
+	ops = append(ops, feeOp)
 
 	return
 }
