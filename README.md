@@ -34,7 +34,7 @@ Running the following commands will create a Docker image called `theta-rosetta-
 _Get the Dockerfile from this repository and put it into your desired local directory_
 
 ```text
-docker build -t theta-rosetta-rpc-adaptor:latest .
+docker build --no-cache -t theta-rosetta-rpc-adaptor:latest .
 ```
 
 _We will put up a pre-built Docker image for download directly soon._
@@ -54,7 +54,7 @@ _We will put up a pre-built Docker image for download directly soon._
 
 Running the following command will start a Docker container and expose the Rosetta APIs.
 ```shell script
-docker run --rm -p 8080:8080 -p 16888:16888 -it theta-rosetta-rpc-adaptor:latest
+docker run -p 8080:8080 -p 16888:16888 -p 15872:15872 -p 21000:21000 -p 30001:30001 -e THETA_NETWORK=testnet -it theta-rosetta-rpc-adaptor:latest
 ```
 
 ### Restarting `Theta-rosetta`
