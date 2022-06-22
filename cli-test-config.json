@@ -1,7 +1,7 @@
 {
     "network": {
         "blockchain": "theta",
-        "network": "mainnet"
+        "network": "testnet"
     },
     "online_url": "http://localhost:8080",
     "data_directory": "data",
@@ -20,10 +20,25 @@
         "end_conditions": {
             "create_account": 10,
             "transfer": 20
-        }
+        },
+        "prefunded_accounts": [
+            {
+                "privkey":"<priv key>",
+                "account_identifier":{
+                   "address":"<addr>",
+                   "metadata":{}
+                },
+                "curve_type":"secp256k1",
+                "currency":{
+                   "symbol":"THETA",
+                   "decimals":18,
+                   "metadata":{}
+                }
+             }
+        ]
     },
     "data": {
-        "start_index": 15560300,
+        "start_index": 16281215,
         "reconciliation_disabled": false,
         "balance_tracking_disabled": false,
         "log_blocks": false,
