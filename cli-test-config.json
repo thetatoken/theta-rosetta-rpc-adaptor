@@ -25,7 +25,7 @@
             {
                 "privkey":"<priv key>",
                 "account_identifier":{
-                   "address":"<addr>",
+                   "address":"0xF4000a13F9A4cF5AB0ca4b6d9f73ee99b5478e77",
                    "metadata":{}
                 },
                 "curve_type":"secp256k1",
