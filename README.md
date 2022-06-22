@@ -37,21 +37,7 @@ _Get the Dockerfile from this repository and put it into your desired local dire
 docker build --no-cache -t theta-rosetta-rpc-adaptor:latest .
 ```
 
-_We will put up a pre-built Docker image for download directly soon._
-
 ## Run
-
-### Configuring `Theta-rosetta` (coming soon)
-`config.yaml` configurations yaml allow you to configure which Theta's network and endpoint to connect to.
-
-```yaml
-* theta:
-  * rpcEndpoint: Theta rpc endpoint (right now pointing to local Theta service inside the same docker container)
-* rpc:
-  * httpAddress: Theta-rosetta rpc host (by default, localhost)
-  * httpPort: Theta-rosetta rpc port (by default, 8080)
-```
-
 Running the following command will start a Docker container and expose the Rosetta APIs.
 ```shell script
 docker run -p 8080:8080 -p 16888:16888 -p 15872:15872 -p 21000:21000 -p 30001:30001 -e THETA_NETWORK=testnet -it theta-rosetta-rpc-adaptor:latest
