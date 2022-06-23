@@ -559,6 +559,75 @@ func ParseSplitRuleTx(splitRuleTx ttypes.SplitRuleTx, status *string, txType TxT
 	return
 }
 
+func ParseSmartContractTxForConstruction(smartContractTx ttypes.SmartContractTx, txType TxType) (metadata map[string]interface{}, ops []*types.Operation) {
+	metadata = map[string]interface{}{
+		"type":      txType,
+		"gas_limit": smartContractTx.GasLimit,
+		"gas_price": smartContractTx.GasPrice,
+		"data":      smartContractTx.Data,
+	}
+
+	sigBytes, _ := smartContractTx.From.Signature.MarshalJSON()
+	var i int64
+
+	if smartContractTx.From.Coins.ThetaWei != nil && len(smartContractTx.From.Coins.ThetaWei.Bits()) != 0 {
+		thetaFrom := types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SmartContractTxFrom.String(),
+			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
+			Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.ThetaWei, big.NewInt(-1)).String(), Currency: GetThetaCurrency()},
+			Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
+		}
+		if i > 0 {
+			thetaFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, &thetaFrom)
+		i++
+	}
+	if smartContractTx.From.Coins.TFuelWei != nil && len(smartContractTx.From.Coins.TFuelWei.Bits()) != 0 {
+		tfuelFrom := types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SmartContractTxFrom.String(),
+			Account:             &types.AccountIdentifier{Address: smartContractTx.From.Address.String()},
+			Amount:              &types.Amount{Value: new(big.Int).Mul(smartContractTx.From.Coins.TFuelWei, big.NewInt(-1)).String(), Currency: GetTFuelCurrency()},
+			Metadata:            map[string]interface{}{"sequence": smartContractTx.From.Sequence, "signature": sigBytes},
+		}
+		if i > 0 {
+			tfuelFrom.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, &tfuelFrom)
+		i++
+	}
+
+	if smartContractTx.To.Coins.ThetaWei != nil && len(smartContractTx.To.Coins.ThetaWei.Bits()) != 0 {
+		thetaTo := types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SmartContractTxTo.String(),
+			Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
+			Amount:              &types.Amount{Value: smartContractTx.To.Coins.ThetaWei.String(), Currency: GetThetaCurrency()},
+		}
+		if i > 0 {
+			thetaTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, &thetaTo)
+		i++
+	}
+	if smartContractTx.To.Coins.TFuelWei != nil && len(smartContractTx.To.Coins.TFuelWei.Bits()) != 0 {
+		tfuelTo := types.Operation{
+			OperationIdentifier: &types.OperationIdentifier{Index: i},
+			Type:                SmartContractTxTo.String(),
+			Account:             &types.AccountIdentifier{Address: smartContractTx.To.Address.String()},
+			Amount:              &types.Amount{Value: smartContractTx.To.Coins.TFuelWei.String(), Currency: GetTFuelCurrency()},
+		}
+		if i > 0 {
+			tfuelTo.RelatedOperations = []*types.OperationIdentifier{{Index: i - 1}}
+		}
+		ops = append(ops, &tfuelTo)
+		i++
+	}
+	return
+}
+
 func ParseSmartContractTx(smartContractTx ttypes.SmartContractTx, status *string, txType TxType, gasUsed uint64, balanceChanges *blockchain.TxBalanceChangesEntry) (metadata map[string]interface{}, ops []*types.Operation) {
 	metadata = map[string]interface{}{
 		"type":      txType,

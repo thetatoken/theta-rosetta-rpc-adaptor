@@ -18,8 +18,9 @@
         "broadcast_limit": 5,
         "constructor_dsl_file": "theta.ros",
         "end_conditions": {
-            "create_account": 10,
-            "transfer": 20
+            "create_account": 1,
+            "transfer": 1,
+            "smart_contract_transfer": 1
         },
         "prefunded_accounts": [
             {
@@ -31,6 +32,19 @@
                 "curve_type":"secp256k1",
                 "currency":{
                    "symbol":"THETA",
+                   "decimals":18,
+                   "metadata":{}
+                }
+             },
+             {
+                "privkey":"c16a008afc6946a4fb4f62aadf75a0c13f83a8bed29bb178a56f8628fba204eb",
+                "account_identifier":{
+                   "address":"0x25302460651DA8D052ed1a405D6f2B6861445e48",
+                   "metadata":{}
+                },
+                "curve_type":"secp256k1",
+                "currency":{
+                   "symbol":"TFUEL",
                    "decimals":18,
                    "metadata":{}
                 }

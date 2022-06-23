@@ -41,7 +41,7 @@ create_account(1){
   }
 }
 
-transfer(10){
+transfer(1){
   transfer{
     transfer.network = {"network":"testnet", "blockchain":"theta"};
     theta_currency = {"symbol":"THETA", "decimals":18};
@@ -55,7 +55,7 @@ transfer(10){
 
     max_fee = "300000000000000000";
     available_amount = {{sender.balance.value}};
-    recipient_amount = random_number({"minimum": "1", "maximum": {{available_amount}}});
+    recipient_amount = random_number({"minimum": "1000000000000000000", "maximum": "10000000000000000000"});
     print_message({"recipient_amount":{{recipient_amount}}});
 
     // Find recipient and construct operations
@@ -118,6 +118,60 @@ transfer(10){
         "account":{{sender.account_identifier}},
         "amount":{
           "value":{{fee}},
+          "currency":{{tfuel_currency}}
+        }
+      }
+    ];
+  }
+}
+
+smart_contract_transfer(1){
+  transfer{
+    transfer.network = {"network":"testnet", "blockchain":"theta"};
+    theta_currency = {"symbol":"THETA", "decimals":18};
+    tfuel_currency = {"symbol":"TFUEL", "decimals":18};
+    sender = find_balance({
+      "minimum_balance":{
+        "value": "1000000000000000000",
+        "currency": {{tfuel_currency}}
+      }
+    });
+
+    gas_price = "4000000000000";
+    gas_limit = "30000";
+    available_amount = {{sender.balance.value}};
+    recipient_amount = random_number({"minimum": "1000000000000000000", "maximum": "10000000000000000000"});
+    print_message({"recipient_amount":{{recipient_amount}}});
+
+    // Find recipient and construct operations
+    sender_amount = 0 - {{recipient_amount}};
+    recipient = find_balance({
+      "not_account_identifier":[{{sender.account_identifier}}],
+      "minimum_balance":{
+        "value": "0",
+        "currency": {{tfuel_currency}}
+      },
+      "create_limit": 100,
+      "create_probability": 50
+    });
+    transfer.confirmation_depth = "1";
+    transfer.operations = [
+      {
+        "operation_identifier":{"index":0},
+        "type":"SmartContractTxFrom",
+        "account":{{sender.account_identifier}},
+        "amount":{
+          "value":{{sender_amount}},
+          "currency":{{tfuel_currency}}
+        }
+      },
+      {
+        "operation_identifier":{"index":1},
+        "related_operations": [{"index": 0}],
+        "type":"SmartContractTxTo",
+        "account":{{recipient.account_identifier}},
+        "amount":{
+          "value":{{recipient_amount}},
           "currency":{{tfuel_currency}}
         }
       }

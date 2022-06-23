@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -307,6 +306,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 
 	if len(request.Operations) == 2 { // SmartContractTx
 		fromOp, fromTFuelWei := matches[0].First()
+		fromTFuelWei = new(big.Int).Mul(fromTFuelWei, big.NewInt(-1))
 		from := ttypes.TxInput{
 			Address: common.HexToAddress(fromOp.Account.Address),
 			Coins: ttypes.Coins{
@@ -316,14 +316,18 @@ func (s *constructionAPIService) ConstructionPayloads(
 			Sequence: sequence,
 		}
 
-		toOp, _ := matches[1].First()
+		toOp, toTFuelWei := matches[1].First()
 		to := ttypes.TxOutput{
 			Address: common.HexToAddress(toOp.Account.Address),
+			Coins: ttypes.Coins{
+				ThetaWei: new(big.Int).SetUint64(0),
+				TFuelWei: toTFuelWei,
+			},
 		}
 
 		gasPriceStr := "0wei"
 		if gasPrice, ok := request.Metadata["gas_price"]; ok {
-			gasPriceStr = gasPrice.(string) + "wei"
+			gasPriceStr = fmt.Sprintf("%f", gasPrice.(float64)) + "wei"
 		}
 		gasPrice, ok := ttypes.ParseCoinAmount(gasPriceStr)
 		if !ok {
@@ -334,7 +338,7 @@ func (s *constructionAPIService) ConstructionPayloads(
 
 		gasLimit := uint64(10000000) //TODO: 10000000 or 0?
 		if gasLim, ok := request.Metadata["gas_limit"]; ok {
-			gasLimit, err = strconv.ParseUint(gasLim.(string), 10, 64)
+			gasLimit = uint64(gasLim.(float64))
 			if err != nil {
 				terr := cmn.ErrServiceInternal
 				terr.Message += "failed to parse gas limit"
@@ -466,7 +470,7 @@ func (s *constructionAPIService) ConstructionParse(
 	case *ttypes.SmartContractTx:
 		tran := *tx.(*ttypes.SmartContractTx)
 		signer = tran.From.Address.String()
-		meta, ops = cmn.ParseSmartContractTx(tran, nil, cmn.SmartContractTx, uint64(0), nil) //TODO: gas used = 0?
+		meta, ops = cmn.ParseSmartContractTxForConstruction(tran, cmn.SmartContractTx)
 	default:
 		terr := cmn.ErrUnableToParseTx
 		terr.Message += "unsupported tx type"
@@ -537,11 +541,11 @@ func (s *constructionAPIService) ConstructionCombine(
 
 	switch tx.(type) {
 	case *ttypes.SendTx:
-		tran := *tx.(*ttypes.SendTx)
-		tran.SetSignature(signer, sig)
+		tx.(*ttypes.SendTx).SetSignature(signer, sig)
+		// tran := *tx.(*ttypes.SendTx)
+		// tran.SetSignature(signer, sig)
 	case *ttypes.SmartContractTx:
-		tran := *tx.(*ttypes.SmartContractTx)
-		tran.SetSignature(signer, sig)
+		tx.(*ttypes.SmartContractTx).SetSignature(signer, sig)
 	default:
 		terr := cmn.ErrUnableToParseTx
 		terr.Message += "unsupported tx type"
