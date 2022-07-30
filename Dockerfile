@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Build Theta
 # ------------------------------------------------------------------------------
-FROM golang:1.14.1 as service-builder
+FROM golang:1.16 as service-builder
 
 ENV GO111MODULE=on
 ENV THETA_HOME=/go/src/github.com/thetatoken/theta
