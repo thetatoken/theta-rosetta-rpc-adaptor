@@ -946,7 +946,7 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 			// Stakes are returned 28800 blocks later, so store tx in db for later processing
 			// Query gcp/vcp/eenp to get real withdraw amount
 			stake, err := stakeService.GetStakeForTx(withdrawStakeTx, blockHeight)
-			if err != nil {
+			if err == nil {
 				if withdrawStakeTx.Purpose == core.StakeForValidator || withdrawStakeTx.Purpose == core.StakeForGuardian {
 					withdrawStakeTx.Source.Coins = ttypes.Coins{ThetaWei: stake.Amount}
 				} else {
