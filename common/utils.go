@@ -958,12 +958,13 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 				returnStakeTxs := ReturnStakeTxs{}
 				kvstore := NewKVStore(db)
 				heightBytes := new(big.Int).SetUint64(uint64(blockHeight) + core.ReturnLockingPeriod).Bytes()
-				if kvstore.Get(heightBytes, &returnStakeTxs) != nil {
+				if kvstore.Get(heightBytes, &returnStakeTxs) == nil {
 					returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 				} else {
 					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
 				}
 				kvstore.Put(heightBytes, returnStakeTxs)
+				panic("!!!!!!! return stakes db or service is nil. !!!!!!!!!!!!!")
 			} else {
 				errorString := fmt.Sprintf("!!!!!!! Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
 				panic(errorString)
