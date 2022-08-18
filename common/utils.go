@@ -963,8 +963,8 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 				} else {
 					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
 				}
-				kvstore.Put(heightBytes, returnStakeTxs)
-				str := fmt.Sprintf("!!!!!!! heightBytes: %v !!!!!!!!!!!!!", heightBytes)
+				err = kvstore.Put(heightBytes, returnStakeTxs)
+				str := fmt.Sprintf("!!!!!!! heightBytes: %v, err: %v !!!!!!!!!!!!!", heightBytes, err)
 				panic(str)
 			} else {
 				errorString := fmt.Sprintf("!!!!!!! Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
