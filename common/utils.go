@@ -964,14 +964,16 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
 				}
 				err = kvstore.Put(heightBytes, returnStakeTxs)
-				str := fmt.Sprintf("!!!!!!! heightBytes: %v, err: %v !!!!!!!!!!!!!", heightBytes, err)
-				panic(str)
+				if err != nil {
+					str := fmt.Sprintf("Failed to put stakes for %s at %d, err: %v", txHash.Hex(), heightBytes, err)
+					panic(str)
+				}
 			} else {
-				errorString := fmt.Sprintf("!!!!!!! Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
+				errorString := fmt.Sprintf("Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
 				panic(errorString)
 			}
 		} else {
-			panic("!!!!!!! return stakes db or service is nil !!!!!!!!!!!!!")
+			panic("return_stakes db or service is nil")
 		}
 	case StakeRewardDistributionTx:
 		stakeRewardDistributionTx := ttypes.StakeRewardDistributionTx{}
