@@ -964,7 +964,8 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
 				}
 				kvstore.Put(heightBytes, returnStakeTxs)
-				panic("!!!!!!! return stakes db or service is nil. !!!!!!!!!!!!!")
+				str := fmt.Sprintf("!!!!!!! heightBytes: %v !!!!!!!!!!!!!", heightBytes)
+				panic(str)
 			} else {
 				errorString := fmt.Sprintf("!!!!!!! Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
 				panic(errorString)
