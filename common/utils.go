@@ -968,6 +968,8 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 				errorString := fmt.Sprintf("!!!!!!! Failed to get stakes for %s at %d", txHash.Hex(), blockHeight)
 				panic(errorString)
 			}
+		} else {
+			panic("!!!!!!! return stakes db or service is nil !!!!!!!!!!!!!")
 		}
 	case StakeRewardDistributionTx:
 		stakeRewardDistributionTx := ttypes.StakeRewardDistributionTx{}
