@@ -197,7 +197,7 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 	// store in db
 	kvstore := NewKVStore(ss.db)
 	for height, returnStakeTxs := range returnStakeTxsMap {
-		heightBytes := new(big.Int).SetUint64(uint64(height)).Bytes()
+		heightBytes := new(big.Int).SetUint64(uint64(height + 1)).Bytes() // actual return height is off-by-one
 		kvstore.Put(heightBytes, returnStakeTxs)
 	}
 
