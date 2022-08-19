@@ -955,15 +955,15 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 
 				returnStakeTx := &ReturnStakeTx{Hash: txHash.Hex(), Tx: withdrawStakeTx}
 
-				returnStakeTxs := ReturnStakeTxs{}
+				returnStakeTxMap := ReturnStakeTxMap{}
 				kvstore := NewKVStore(db)
 				heightBytes := new(big.Int).SetUint64(uint64(blockHeight) + core.ReturnLockingPeriod).Bytes()
-				if kvstore.Get(heightBytes, &returnStakeTxs) == nil {
-					returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
-				} else {
-					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
+				if kvstore.Get(heightBytes, &returnStakeTxMap) != nil {
+					returnStakeTxMap.ReturnStakeMap = make(map[cmn.Address]*ReturnStakeTx)
 				}
-				err = kvstore.Put(heightBytes, returnStakeTxs)
+				returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
+
+				err = kvstore.Put(heightBytes, returnStakeTxMap)
 				if err != nil {
 					str := fmt.Sprintf("Failed to put stakes for %s at %d, err: %v", txHash.Hex(), heightBytes, err)
 					panic(str)

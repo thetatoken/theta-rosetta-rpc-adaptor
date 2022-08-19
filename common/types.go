@@ -218,6 +218,6 @@ type ReturnStakeTx struct {
 	Tx   ttypes.WithdrawStakeTx `json:"tx"`
 }
 
-type ReturnStakeTxs struct {
-	ReturnStakes []*ReturnStakeTx `json:"return_stakes"`
+type ReturnStakeTxMap struct {
+	ReturnStakeMap map[common.Address]*ReturnStakeTx `json:"return_stake_map"`
 }

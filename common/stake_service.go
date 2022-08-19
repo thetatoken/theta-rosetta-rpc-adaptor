@@ -56,7 +56,7 @@ func NewStakeService(client jrpc.RPCClient, db *LDBDatabase) *StakeService {
 }
 
 func (ss *StakeService) GenStakesForSnapshot() error {
-	returnStakeTxsMap := make(map[uint64]ReturnStakeTxs)
+	returnStakeTxsMap := make(map[uint64]ReturnStakeTxMap)
 
 	status, err := GetStatus(ss.client)
 	if err != nil {
@@ -97,12 +97,12 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
-						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxs
-					} else {
-						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
+
+					var returnStakeTxMap ReturnStakeTxMap
+					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; !ok {
+						returnStakeTxMap.ReturnStakeMap = make(map[cmn.Address]*ReturnStakeTx)
 					}
+					returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
 				}
 			}
 		}
@@ -141,11 +141,12 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
-					} else {
-						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
+
+					var returnStakeTxMap ReturnStakeTxMap
+					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; !ok {
+						returnStakeTxMap.ReturnStakeMap = make(map[cmn.Address]*ReturnStakeTx)
 					}
+					returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
 				}
 			}
 		}
@@ -184,11 +185,12 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
-					} else {
-						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
+
+					var returnStakeTxMap ReturnStakeTxMap
+					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; !ok {
+						returnStakeTxMap.ReturnStakeMap = make(map[cmn.Address]*ReturnStakeTx)
 					}
+					returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
 				}
 			}
 		}
