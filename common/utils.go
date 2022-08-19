@@ -955,15 +955,23 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 
 				returnStakeTx := &ReturnStakeTx{Hash: txHash.Hex(), Tx: withdrawStakeTx}
 
-				returnStakeTxMap := ReturnStakeTxMap{}
+				returnStakeTxs := ReturnStakeTxs{}
 				kvstore := NewKVStore(db)
 				heightBytes := new(big.Int).SetUint64(uint64(blockHeight) + core.ReturnLockingPeriod).Bytes()
-				if kvstore.Get(heightBytes, &returnStakeTxMap) != nil {
-					returnStakeTxMap.ReturnStakeMap = make(map[cmn.Address]*ReturnStakeTx)
+				if kvstore.Get(heightBytes, &returnStakeTxs) == nil {
+					exists := false
+					for _, stake := range returnStakeTxs.ReturnStakes {
+						if returnStakeTx.Hash == stake.Hash {
+							exists = true
+						}
+					}
+					if !exists {
+						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
+					}
+				} else {
+					returnStakeTxs.ReturnStakes = []*ReturnStakeTx{returnStakeTx}
 				}
-				returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
-
-				err = kvstore.Put(heightBytes, returnStakeTxMap)
+				err = kvstore.Put(heightBytes, returnStakeTxs)
 				if err != nil {
 					str := fmt.Sprintf("Failed to put stakes for %s at %d, err: %v", txHash.Hex(), heightBytes, err)
 					panic(str)

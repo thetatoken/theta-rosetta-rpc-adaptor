@@ -56,7 +56,7 @@ func NewStakeService(client jrpc.RPCClient, db *LDBDatabase) *StakeService {
 }
 
 func (ss *StakeService) GenStakesForSnapshot() error {
-	returnStakeTxsMap := make(map[uint64]ReturnStakeTxMap)
+	returnStakeTxsMap := make(map[uint64]ReturnStakeTxs)
 
 	status, err := GetStatus(ss.client)
 	if err != nil {
@@ -97,12 +97,11 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-
-					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
+					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
+						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
+						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxs
 					} else {
-						returnStakeTxMap = ReturnStakeTxMap{ReturnStakeMap: make(map[cmn.Address]*ReturnStakeTx)}
-						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxMap
+						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
 					}
 				}
 			}
@@ -142,12 +141,10 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-
-					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
+					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
+						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 					} else {
-						returnStakeTxMap = ReturnStakeTxMap{ReturnStakeMap: make(map[cmn.Address]*ReturnStakeTx)}
-						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxMap
+						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
 					}
 				}
 			}
@@ -187,12 +184,10 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 						},
 					}
 					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
-
-					if returnStakeTxMap, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
-						returnStakeTxMap.ReturnStakeMap[returnStakeTx.Tx.Source.Address] = returnStakeTx
+					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
+						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 					} else {
-						returnStakeTxMap = ReturnStakeTxMap{ReturnStakeMap: make(map[cmn.Address]*ReturnStakeTx)}
-						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxMap
+						returnStakeTxsMap[stake.ReturnHeight] = ReturnStakeTxs{[]*ReturnStakeTx{returnStakeTx}}
 					}
 				}
 			}
