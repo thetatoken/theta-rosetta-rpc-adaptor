@@ -8,7 +8,7 @@ ENV THETA_HOME=/go/src/github.com/thetatoken/theta
 
 WORKDIR $THETA_HOME
 
-RUN git clone https://github.com/thetatoken/theta-protocol-ledger.git .
+RUN git clone --branch get-stake https://github.com/thetatoken/theta-protocol-ledger.git .
 
 RUN make install
 

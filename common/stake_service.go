@@ -43,6 +43,17 @@ type BlockHashEenpPair struct {
 	EENs      []*core.EliteEdgeNode
 }
 
+type GetEenpStakeByHeightArgs struct {
+	Height        cmn.JSONUint64 `json:"height"`
+	Source        cmn.Address    `json:"source"`
+	Holder        cmn.Address    `json:"holder"`
+	WithdrawnOnly bool           `json:"withdrawn_only"`
+}
+
+type GetEenpStakeResult struct {
+	Stake core.Stake `json:"stake"`
+}
+
 type StakeService struct {
 	client jrpc.RPCClient
 	db     *LDBDatabase
@@ -205,19 +216,26 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 }
 
 func (ss *StakeService) GetStakeForTx(withdrawStakeTx ttypes.WithdrawStakeTx, blockHeight cmn.JSONUint64) (*core.Stake, error) {
+	var args interface{}
 	rpcMethod := "theta."
 	switch withdrawStakeTx.Purpose {
 	case core.StakeForValidator:
 		rpcMethod += "GetVcpByHeight"
+		args = GetStakeByHeightArgs{Height: blockHeight}
 	case core.StakeForGuardian:
 		rpcMethod += "GetGcpByHeight"
+		args = GetStakeByHeightArgs{Height: blockHeight}
 	case core.StakeForEliteEdgeNode:
-		rpcMethod += "GetEenpByHeight"
+		rpcMethod += "GetEenpStakeByHeight"
+		args = GetEenpStakeByHeightArgs{
+			Height:        blockHeight,
+			Source:        withdrawStakeTx.Source.Address,
+			Holder:        withdrawStakeTx.Holder.Address,
+			WithdrawnOnly: true,
+		}
 	}
 
-	rpcRes, rpcErr := ss.client.Call(rpcMethod, GetStakeByHeightArgs{
-		Height: blockHeight,
-	})
+	rpcRes, rpcErr := ss.client.Call(rpcMethod, args)
 
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -261,19 +279,9 @@ func (ss *StakeService) GetStakeForTx(withdrawStakeTx ttypes.WithdrawStakeTx, bl
 			}
 		}
 	case core.StakeForEliteEdgeNode:
-		eenpResult := GetEenpResult{}
-		json.Unmarshal(jsonBytes, &eenpResult)
-		if len(eenpResult.BlockHashEenpPairs) > 0 {
-			for _, een := range eenpResult.BlockHashEenpPairs[0].EENs {
-				if een.Holder == withdrawStakeTx.Holder.Address {
-					for _, stake := range een.Stakes {
-						if stake.Source == withdrawStakeTx.Source.Address {
-							return stake, nil
-						}
-					}
-				}
-			}
-		}
+		eenpStakeResult := GetEenpStakeResult{}
+		json.Unmarshal(jsonBytes, &eenpStakeResult)
+		return &eenpStakeResult.Stake, nil
 	}
 	return nil, nil
 }
