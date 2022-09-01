@@ -7,6 +7,7 @@ import (
 
 	cmn "github.com/thetatoken/theta/common"
 	"github.com/thetatoken/theta/core"
+	"github.com/thetatoken/theta/crypto"
 	ttypes "github.com/thetatoken/theta/ledger/types"
 	jrpc "github.com/ybbus/jsonrpc"
 )
@@ -59,6 +60,8 @@ type StakeService struct {
 	db     *LDBDatabase
 }
 
+const StakeReturnPrefix = "stake_return"
+
 func NewStakeService(client jrpc.RPCClient, db *LDBDatabase) *StakeService {
 	return &StakeService{
 		client: client,
@@ -96,7 +99,8 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 	json.Unmarshal(jsonBytes, &vcpResult)
 	if len(vcpResult.BlockHashVcpPairs) > 0 {
 		for _, candidate := range vcpResult.BlockHashVcpPairs[0].Vcp.SortedCandidates {
-			for _, stake := range candidate.Stakes {
+			blockHash := vcpResult.BlockHashVcpPairs[0].BlockHash.Hex()
+			for i, stake := range candidate.Stakes {
 				if stake.Withdrawn {
 					withdrawStakeTx := ttypes.WithdrawStakeTx{
 						Source: ttypes.TxInput{
@@ -107,7 +111,11 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 							Address: stake.Holder,
 						},
 					}
-					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
+					hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("vcp_%s_%s_%d", StakeReturnPrefix, blockHash, i)))
+					returnStakeTx := &ReturnStakeTx{
+						Hash: hash.Hex(),
+						Tx:   withdrawStakeTx,
+					}
 					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
 						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 						returnStakeTxsMap[stake.ReturnHeight] = returnStakeTxs
@@ -140,7 +148,8 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 	json.Unmarshal(jsonBytes, &gcpResult)
 	if len(gcpResult.BlockHashGcpPairs) > 0 {
 		for _, guardian := range gcpResult.BlockHashGcpPairs[0].Gcp.SortedGuardians {
-			for _, stake := range guardian.Stakes {
+			blockHash := gcpResult.BlockHashGcpPairs[0].BlockHash.Hex()
+			for i, stake := range guardian.Stakes {
 				if stake.Withdrawn {
 					withdrawStakeTx := ttypes.WithdrawStakeTx{
 						Source: ttypes.TxInput{
@@ -151,7 +160,11 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 							Address: stake.Holder,
 						},
 					}
-					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
+					hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("gcp_%s_%s_%d", StakeReturnPrefix, blockHash, i)))
+					returnStakeTx := &ReturnStakeTx{
+						Hash: hash.Hex(),
+						Tx:   withdrawStakeTx,
+					}
 					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
 						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 					} else {
@@ -183,7 +196,8 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 	json.Unmarshal(jsonBytes, &eenpResult)
 	if len(eenpResult.BlockHashEenpPairs) > 0 {
 		for _, een := range eenpResult.BlockHashEenpPairs[0].EENs {
-			for _, stake := range een.Stakes {
+			blockHash := eenpResult.BlockHashEenpPairs[0].BlockHash.Hex()
+			for i, stake := range een.Stakes {
 				if stake.Withdrawn {
 					withdrawStakeTx := ttypes.WithdrawStakeTx{
 						Source: ttypes.TxInput{
@@ -194,7 +208,11 @@ func (ss *StakeService) GenStakesForSnapshot() error {
 							Address: stake.Holder,
 						},
 					}
-					returnStakeTx := &ReturnStakeTx{Tx: withdrawStakeTx}
+					hash := crypto.Keccak256Hash([]byte(fmt.Sprintf("eenp_%s_%s_%d", StakeReturnPrefix, blockHash, i)))
+					returnStakeTx := &ReturnStakeTx{
+						Hash: hash.Hex(),
+						Tx:   withdrawStakeTx,
+					}
 					if returnStakeTxs, ok := returnStakeTxsMap[stake.ReturnHeight]; ok {
 						returnStakeTxs.ReturnStakes = append(returnStakeTxs.ReturnStakes, returnStakeTx)
 					} else {
