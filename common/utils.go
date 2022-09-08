@@ -24,6 +24,8 @@ import (
 
 var logger *log.Entry = log.WithFields(log.Fields{"prefix": "utils"})
 
+const StakeWithdrawPrefix = "stake_withdraw"
+
 // ------------------------------ Chain ID -----------------------------------
 var chainId string
 
@@ -983,6 +985,8 @@ func ParseTx(txType TxType, rawTx json.RawMessage, txHash cmn.Hash, status *stri
 		} else {
 			panic("return_stakes db or service is nil")
 		}
+
+		transaction.TransactionIdentifier.Hash = crypto.Keccak256Hash([]byte(fmt.Sprintf("%s_%s", StakeWithdrawPrefix, txHash.Hex()))).Hex()
 	case StakeRewardDistributionTx:
 		stakeRewardDistributionTx := ttypes.StakeRewardDistributionTx{}
 		json.Unmarshal(rawTx, &stakeRewardDistributionTx)

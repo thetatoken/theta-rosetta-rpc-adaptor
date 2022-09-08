@@ -151,9 +151,7 @@ func (s *blockAPIService) Block(
 				}
 
 				tx := cmn.ParseTx(tblock.Txs[i].Type, txMap["raw"], tblock.Txs[i].Hash, &status, gasUsed, tblock.Txs[i].BalanceChanges, s.db, s.stakeService, tblock.Height)
-				if tblock.Txs[i].Type != cmn.WithdrawStakeTx {
-					txs = append(txs, &tx)
-				}
+				txs = append(txs, &tx)
 			}
 		}
 
