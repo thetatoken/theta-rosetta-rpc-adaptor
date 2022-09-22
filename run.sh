@@ -13,7 +13,7 @@ if [ $THETA_NETWORK == "mainnet" ]; then
     echo "data:
     path: /data" >> /app/mainnet/walletnode/config.yaml
     echo "storage:
-    statePruningEnabled: false" >> /app/mainnet/walletnode/config.yaml
+    statePruningRetainedBlocks: 403200" >> /app/mainnet/walletnode/config.yaml
     
     MAINNET_SNAPSHOT=/app/mainnet/walletnode/snapshot
 
@@ -33,7 +33,7 @@ elif [ $THETA_NETWORK == "testnet" ]; then
     echo "data:
     path: /data" >> /app/testnet/walletnode/config.yaml
     echo "storage:
-    statePruningEnabled: false" >> /app/testnet/walletnode/config.yaml
+    statePruningRetainedBlocks: 403200" >> /app/testnet/walletnode/config.yaml
 
     TESTNET_SNAPSHOT=/app/testnet/walletnode/snapshot
 
